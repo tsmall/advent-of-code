@@ -1,0 +1,45 @@
+defpackage solution :
+    import core
+
+defn verbose-flag? (s:String) -> True|False :
+    s == "-v" or s == "--verbose"
+
+val verbose? = any?(verbose-flag?, command-line-arguments())
+
+defn log (x) -> False :
+    if verbose? :
+        println(STANDARD-ERROR-STREAM, x)
+
+defn get-char () -> Char|False :
+    get-char(STANDARD-INPUT-STREAM)
+
+defn get-line () -> String|False :
+    var s:String = ""
+    var c = get-char()
+    while c != false and c != '\n' :
+        s = append(s, to-string(c))
+        c = get-char()
+    false when empty?(s) else s
+
+defn get-number () -> Int|False :
+    val sign = get-char()
+    val line = get-line()
+    val num = match(line) :
+        (line:False) : false
+        (line:String) : to-int(line)
+
+    match(num) :
+        (num:False) : false
+        (num:Int) : (num * -1) when sign == '-' else num
+
+var total = 0
+
+defn* loop () :
+    val n = get-number()
+    if n != false :
+        total = total + (n as Int)
+        log("Got: %_, Total: %_" % [n, total])
+        loop()
+loop()
+
+println(total)
