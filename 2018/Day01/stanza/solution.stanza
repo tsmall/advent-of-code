@@ -15,10 +15,15 @@ defn get-char () -> Char|False :
 
 defn get-line () -> String|False :
     var s:String = ""
-    var c = get-char()
-    while c != false and c != '\n' :
-        s = append(s, to-string(c))
-        c = get-char()
+    val max-iterations = 100
+    defn* loop (iterations:Int) :
+        if iterations > max-iterations :
+            fatal("Line is too long!")
+        val c = get-char()
+        if c != false and c != '\n' :
+            s = append(s, to-string(c))
+            loop(iterations + 1)
+    loop(1)
     false when empty?(s) else s
 
 defn get-number () -> Int|False :
@@ -27,7 +32,6 @@ defn get-number () -> Int|False :
     val num = match(line) :
         (line:False) : false
         (line:String) : to-int(line)
-
     match(num) :
         (num:False) : false
         (num:Int) : (num * -1) when sign == '-' else num
