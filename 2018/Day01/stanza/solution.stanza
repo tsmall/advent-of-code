@@ -36,14 +36,14 @@ defn get-number () -> Int|False :
         (num:False) : false
         (num:Int) : (num * -1) when sign == '-' else num
 
-var total = 0
-
-defn* loop () :
+defn* sum-numbers (total:Int) -> Int :
     val n = get-number()
     if n != false :
-        total = total + (n as Int)
-        log("Got: %_, Total: %_" % [n, total])
-        loop()
-loop()
+        val new-total = total + (n as Int)
+        log("Got: %_, Total: %_" % [n, new-total])
+        sum-numbers(new-total)
+    else :
+        total
 
+val total = sum-numbers(0)
 println(total)
