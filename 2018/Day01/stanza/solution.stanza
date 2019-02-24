@@ -1,10 +1,40 @@
 defpackage solution :
     import core
+    import collections
+
+;; -----------------------------------------------------------------------------
+;; Argument parsing
 
 defn verbose-flag? (s:String) -> True|False :
     s == "-v" or s == "--verbose"
 
 val verbose? = any?(verbose-flag?, command-line-arguments())
+
+deftype Mode
+deftype UnknownMode <: Mode
+deftype SumMode <: Mode
+deftype RepeatMode <: Mode
+
+defn get-mode () -> Mode :
+    val args = command-line-arguments()
+    val non-flags = to-array<String> $ for arg in args filter :
+        not prefix?(arg, "-")
+
+    if length(non-flags) != 2 :
+        new UnknownMode
+    else :
+        val mode = get(non-flags, 1)
+        switch {mode == _} :
+            "sum" : new SumMode
+            "repeat" : new RepeatMode
+            else : new UnknownMode
+
+defn get-binary-name () -> String :
+    val args = command-line-arguments()
+    get(args, 0)
+
+;; -----------------------------------------------------------------------------
+;; I/O
 
 defn log (x) -> False :
     if verbose? :
@@ -14,17 +44,17 @@ defn get-char () -> Char|False :
     get-char(STANDARD-INPUT-STREAM)
 
 defn get-line () -> String|False :
-    var s:String = ""
+    var line:String = ""
     val max-iterations = 100
     defn* loop (iterations:Int) :
         if iterations > max-iterations :
             fatal("Line is too long!")
         val c = get-char()
         if c != false and c != '\n' :
-            s = append(s, to-string(c))
+            line = append(line, to-string(c))
             loop(iterations + 1)
     loop(1)
-    false when empty?(s) else s
+    false when empty?(line) else line
 
 defn get-number () -> Int|False :
     val sign = get-char()
@@ -36,6 +66,16 @@ defn get-number () -> Int|False :
         (num:False) : false
         (num:Int) : (num * -1) when sign == '-' else num
 
+;; -----------------------------------------------------------------------------
+;; Solutions
+
+defn show-usage () :
+    println("Usage: %_ [-v|--verbose] sum|repeat" % [get-binary-name()])
+
+defn sum-frequencies () :
+    val total = sum-numbers(0)
+    println(total)
+
 defn* sum-numbers (total:Int) -> Int :
     val n = get-number()
     if n != false :
@@ -45,5 +85,51 @@ defn* sum-numbers (total:Int) -> Int :
     else :
         total
 
-val total = sum-numbers(0)
-println(total)
+defn find-first-repeated-sum () :
+    val sum = first-repeated-sum()
+    println(sum)
+
+defn first-repeated-sum () :
+    var numbers = Vector<Int>()
+    var totals-so-far = Vector<Int>()
+    defn* loop (total:Int) -> Int :
+        add(totals-so-far, total)
+        val n = get-number()
+        if n != false :
+            add(numbers, (n as Int))
+            val new-total = total + (n as Int)
+            log("Got: %_, Total: %_" % [n, new-total])
+            if contains?(totals-so-far, new-total) :
+                new-total
+            else :
+                loop(new-total)
+        else :
+            log("Looping back around.")
+            loop2(total, 0)
+
+    defn* loop2 (total:Int, index:Int) -> Int :
+        if index < length(numbers) :
+            val n = get(numbers, index)
+            val new-total = total + n
+            log("Got: %_, Total: %_" % [n, new-total])
+            if contains?(totals-so-far, new-total) :
+                new-total
+            else :
+                add(totals-so-far, new-total)
+                loop2(new-total, index + 1)
+        else :
+            log("Looping back around.")
+            loop2(total, 0)
+    loop(0)
+
+;; -----------------------------------------------------------------------------
+;; Main
+
+;; TODO[TRS,2018-12-11]
+;; Make this more OO by giving each Mode object a run() method, calling that
+;; here, and trusting each object to do the right thing.
+
+match(get-mode()) :
+    (mode:UnknownMode) : show-usage()
+    (mode:SumMode) : sum-frequencies()
+    (mode:RepeatMode) : find-first-repeated-sum()
