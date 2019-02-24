@@ -1,19 +1,21 @@
 defpackage solution :
     import core
     import collections
+    import io
+    import log
+    import seq
+
+
 
 ;; -----------------------------------------------------------------------------
 ;; Argument parsing
 
-defn verbose-flag? (s:String) -> True|False :
-    s == "-v" or s == "--verbose"
-
-val verbose? = any?(verbose-flag?, command-line-arguments())
 
 deftype Mode
 deftype UnknownMode <: Mode
 deftype SumMode <: Mode
 deftype RepeatMode <: Mode
+
 
 defn get-mode () -> Mode :
     val args = command-line-arguments()
@@ -29,42 +31,16 @@ defn get-mode () -> Mode :
             "repeat" : new RepeatMode
             else : new UnknownMode
 
+
 defn get-binary-name () -> String :
     val args = command-line-arguments()
     get(args, 0)
 
+
+
 ;; -----------------------------------------------------------------------------
 ;; I/O
 
-defn log (x) -> False :
-    if verbose? :
-        println(STANDARD-ERROR-STREAM, x)
-
-defn get-char () -> Char|False :
-    get-char(STANDARD-INPUT-STREAM)
-
-defn get-line () -> String|False :
-    var line:String = ""
-    val max-iterations = 100
-    defn* loop (iterations:Int) :
-        if iterations > max-iterations :
-            fatal("Line is too long!")
-        val c = get-char()
-        if c != false and c != '\n' :
-            line = append(line, to-string(c))
-            loop(iterations + 1)
-    loop(1)
-    false when empty?(line) else line
-
-defn get-number () -> Int|False :
-    val sign = get-char()
-    val line = get-line()
-    val num = match(line) :
-        (line:False) : false
-        (line:String) : to-int(line)
-    match(num) :
-        (num:False) : false
-        (num:Int) : (num * -1) when sign == '-' else num
 
 defn get-numbers () -> Vector<Int> :
     val numbers = Vector<Int>()
@@ -74,37 +50,27 @@ defn get-numbers () -> Vector<Int> :
         n = get-number()
     numbers
 
-;; -----------------------------------------------------------------------------
-;; Infinite Seqs
 
-defn repeat-forever<?T> (xs:IndexedCollection<?T>) -> Seq<T> :
-    var next-index = 0
-    new Seq<T> :
-        defmethod empty? (this) :
-            empty?(xs)
-        defmethod peek (this) :
-            get(xs, next-index)
-        defmethod next (this) :
-            val x = peek(this)
-            next-index = next-index + 1
-            if next-index >= length(xs) :
-                next-index = 0
-            x
 
 ;; -----------------------------------------------------------------------------
 ;; Solutions
 
+
 defn show-usage () :
     println("Usage: %_ [-v|--verbose] sum|repeat" % [get-binary-name()])
+
 
 defn sum-frequencies () :
     println $ sum-numbers()
 
+
 defn sum-numbers () -> Int :
     sum $ get-numbers()
 
+
 defn find-first-repeated-sum () :
     println $ first-repeated-sum()
+
 
 defn first-repeated-sum () -> Int :
     val numbers = get-numbers()
@@ -120,8 +86,11 @@ defn first-repeated-sum () -> Int :
                 return(sum)
         fatal("Unreachable (infinite sequence ended)")
 
+
+
 ;; -----------------------------------------------------------------------------
 ;; Main
+
 
 ;; TODO[TRS,2018-12-11]
 ;; Make this more OO by giving each Mode object a run() method, calling that

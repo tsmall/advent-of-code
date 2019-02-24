@@ -1,7 +1,9 @@
+LIBS = ../../../lib/stanza/*.stanza
+
 build: solution
 
-solution: solution.stanza
-	stanza solution.stanza -o solution
+solution: $(LIBS) solution.stanza
+	stanza $(LIBS) solution.stanza -o solution
 
 clean:
 	rm -f solution
