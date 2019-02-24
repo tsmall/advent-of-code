@@ -1,8 +1,21 @@
 # Advent of Code Solutions
 
+
 This project contains my solutions to the [Advent of Code][aoc] exercises.
 
+
+**Contents**
+
+- [Project Organization](#project-organization)
+- [Program Design](#program-design)
+
+
+
+
+
+<a id="project-organization"></a>
 ## Project Organization
+
 
 The project is organized like this:
 
@@ -14,8 +27,6 @@ The project is organized like this:
       |            |
       |            +-- problem.txt
       |            |
-      |            +-- exampleNN.txt
-      |            |
       |            +-- input.txt
       |            |
       |            +-- <language>
@@ -24,7 +35,13 @@ The project is organized like this:
            |
            +-- <language>
 
+
+
+
+
+<a id="program-design"></a>
 ## Program Design
+
 
 Each program is designed to follow the [Unix Philosophy][unix].
 They are standalone, command-line programs
@@ -42,6 +59,11 @@ to feed them input:
 
     $ cat input.txt | <program>
 
+
+
+
+
 <!-- References -->
+
 [aoc]: https://adventofcode.com
 [unix]: https://en.wikipedia.org/wiki/Unix_philosophy
