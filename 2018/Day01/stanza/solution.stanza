@@ -66,6 +66,31 @@ defn get-number () -> Int|False :
         (num:False) : false
         (num:Int) : (num * -1) when sign == '-' else num
 
+defn get-numbers () -> Vector<Int> :
+    val numbers = Vector<Int>()
+    var n = get-number()
+    while n != false :
+        add(numbers, n as Int)
+        n = get-number()
+    numbers
+
+;; -----------------------------------------------------------------------------
+;; Infinite Seqs
+
+defn repeat-forever<?T> (xs:IndexedCollection<?T>) -> Seq<T> :
+    var next-index = 0
+    new Seq<T> :
+        defmethod empty? (this) :
+            empty?(xs)
+        defmethod peek (this) :
+            get(xs, next-index)
+        defmethod next (this) :
+            val x = peek(this)
+            next-index = next-index + 1
+            if next-index >= length(xs) :
+                next-index = 0
+            x
+
 ;; -----------------------------------------------------------------------------
 ;; Solutions
 
@@ -73,54 +98,27 @@ defn show-usage () :
     println("Usage: %_ [-v|--verbose] sum|repeat" % [get-binary-name()])
 
 defn sum-frequencies () :
-    val total = sum-numbers(0)
-    println(total)
+    println $ sum-numbers()
 
-defn* sum-numbers (total:Int) -> Int :
-    val n = get-number()
-    if n != false :
-        val new-total = total + (n as Int)
-        log("Got: %_, Total: %_" % [n, new-total])
-        sum-numbers(new-total)
-    else :
-        total
+defn sum-numbers () -> Int :
+    sum $ get-numbers()
 
 defn find-first-repeated-sum () :
-    val sum = first-repeated-sum()
-    println(sum)
+    println $ first-repeated-sum()
 
-defn first-repeated-sum () :
-    var numbers = Vector<Int>()
-    var totals-so-far = Vector<Int>()
-    defn* loop (total:Int) -> Int :
-        add(totals-so-far, total)
-        val n = get-number()
-        if n != false :
-            add(numbers, (n as Int))
-            val new-total = total + (n as Int)
-            log("Got: %_, Total: %_" % [n, new-total])
-            if contains?(totals-so-far, new-total) :
-                new-total
-            else :
-                loop(new-total)
-        else :
-            log("Looping back around.")
-            loop2(total, 0)
-
-    defn* loop2 (total:Int, index:Int) -> Int :
-        if index < length(numbers) :
-            val n = get(numbers, index)
-            val new-total = total + n
-            log("Got: %_, Total: %_" % [n, new-total])
-            if contains?(totals-so-far, new-total) :
-                new-total
-            else :
-                add(totals-so-far, new-total)
-                loop2(new-total, index + 1)
-        else :
-            log("Looping back around.")
-            loop2(total, 0)
-    loop(0)
+defn first-repeated-sum () -> Int :
+    val numbers = get-numbers()
+    val sums-so-far = HashTable<Int, Int>()
+    var sum = 0
+    label<Int> return :
+        for n in repeat-forever(numbers) do :
+            ;; Add initial zero sum because example shows it counts
+            set(sums-so-far, sum, 0)
+            log("n=%_ sum=%_" % [n, sum])
+            sum = sum + n
+            if key?(sums-so-far, sum) :
+                return(sum)
+        fatal("Unreachable (infinite sequence ended)")
 
 ;; -----------------------------------------------------------------------------
 ;; Main
