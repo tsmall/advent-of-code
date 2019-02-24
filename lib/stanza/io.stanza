@@ -1,0 +1,48 @@
+;; io.stanza -- I/O Utilities
+;;
+;; This package provides features for reading and writing input/output.
+
+defpackage io :
+    import core
+    import collections
+
+
+
+public defn get-char () -> Char|False :
+    get-char(STANDARD-INPUT-STREAM)
+
+
+public defn get-line () -> String|False :
+    var line:String = ""
+    val max-iterations = 100
+
+    defn* loop (iterations:Int) :
+        if iterations > max-iterations :
+            fatal("Line is too long!")
+        val c = get-char()
+        if c != false and c != '\n' :
+            line = append(line, to-string(c))
+            loop(iterations + 1)
+
+    loop(1)
+    false when empty?(line) else line
+
+
+public defn get-lines () -> List<String> :
+    to-list $ repeat-while{_} $ fn () :
+        val line = get-line()
+        if line == false :
+            None()
+        else:
+            One(line as String)
+
+
+public defn get-number () -> Int|False :
+    val sign = get-char()
+    val line = get-line()
+    val num = match(line) :
+        (line:False) : false
+        (line:String) : to-int(line)
+    match(num) :
+        (num:False) : false
+        (num:Int) : (num * -1) when sign == '-' else num
