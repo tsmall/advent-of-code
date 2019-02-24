@@ -1,0 +1,19 @@
+;; log.stanza -- Logging Utilities
+;;
+;; This package provides features for logging.
+
+defpackage log :
+    import core
+
+
+
+defn verbose-flag? (s:String) -> True|False :
+    s == "-v" or s == "--verbose"
+
+
+val verbose? = any?(verbose-flag?, command-line-arguments())
+
+
+public defn log (x) -> False :
+    if verbose? :
+        println(STANDARD-ERROR-STREAM, x)
