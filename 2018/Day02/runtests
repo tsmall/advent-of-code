@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+
+command="$1"
+
+
+function plan {
+    local total="$1"
+    echo "1..$total"
+}
+
+
+testnum=0
+
+function test {
+    declare name="$1"
+    declare -a input=("${!2}")
+    declare expected="$3"
+
+    local actual=$( printf '%s\n' "${input[@]}" | "$command" )
+
+    testnum=$(($testnum + 1))
+
+    if [[ $expected == $actual ]]
+    then
+        echo "ok $testnum - $name"
+    else
+        echo "not ok $testnum - $name"
+        echo "#        got: $actual"
+        echo "#   expected: $expected"
+    fi
+}
+
+
+
+
+
+plan 1
+
+
+input=(
+    abcdef
+    bababc
+    abbcde
+    abcccd
+    aabcdd
+    abcdee
+    ababab
+)
+test "provided example" input[@] 12

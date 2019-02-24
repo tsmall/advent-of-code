@@ -1,0 +1,24 @@
+defpackage solution :
+    import core
+    import io
+    import seq
+
+
+
+defn checksum (box-ids:Seqable<String>) -> Int :
+    var duplicate-count = 0
+    var triplicate-count = 0
+
+    for id in to-seq(box-ids) do :
+        val chars = to-seq(id)
+        val groups = to-list $ group(chars)
+        val lengths = map(length, groups)
+        if any?({_ == 2}, lengths) :
+            duplicate-count = duplicate-count + 1
+        if any?({_ == 3}, lengths) :
+            triplicate-count = triplicate-count + 1
+
+    duplicate-count * triplicate-count
+
+
+println $ checksum $ get-lines()
