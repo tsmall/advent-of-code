@@ -4,7 +4,21 @@
 
 defpackage seq :
     import core
+    import collections
 
+
+
+public defn group<?T> (xs:Seq<?T>) -> Seqable<Lengthable> :
+    val groups = HashTable<T, Vector<T>>()
+    for x in xs do :
+        if key?(groups, x) :
+            val v = get(groups, x)
+            add(v, x)
+        else :
+            val v = Vector<T>()
+            add(v, x)
+            set(groups, x, v)
+    values(groups)
 
 
 public defn repeat-forever<?T> (xs:IndexedCollection<?T>) -> Seq<T> :
