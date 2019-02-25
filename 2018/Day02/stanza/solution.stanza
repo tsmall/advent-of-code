@@ -5,19 +5,24 @@ defpackage solution :
 
 
 
+defn group-chars (s:String) :
+    val chars = to-seq(s)
+    to-list $ group(chars)
+
+
+defn char-counts (s:String) -> List<Int> :
+    map{length, _} $ group-chars(s)
+
+
 defn checksum (box-ids:Seqable<String>) -> Int :
     var duplicate-count = 0
     var triplicate-count = 0
-
     for id in to-seq(box-ids) do :
-        val chars = to-seq(id)
-        val groups = to-list $ group(chars)
-        val lengths = map(length, groups)
+        val lengths = char-counts(id)
         if any?({_ == 2}, lengths) :
             duplicate-count = duplicate-count + 1
         if any?({_ == 3}, lengths) :
             triplicate-count = triplicate-count + 1
-
     duplicate-count * triplicate-count
 
 
