@@ -12,4 +12,7 @@ test: solution
 	../runtests ./solution
 
 part1: solution
-	cat ../input.txt | ./solution -v
+	cat ../input.txt | ./solution -v part1
+
+part2: solution
+	cat ../input.txt | ./solution -v part2

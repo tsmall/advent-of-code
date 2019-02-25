@@ -13,11 +13,12 @@ function plan {
 testnum=0
 
 function test {
-    declare name="$1"
-    declare -a input=("${!2}")
-    declare expected="$3"
+    declare mode="$1"
+    declare name="$2"
+    declare -a input=("${!3}")
+    declare expected="$4"
 
-    local actual=$( printf '%s\n' "${input[@]}" | "$command" )
+    local actual=$( printf '%s\n' "${input[@]}" | "$command" $mode )
 
     testnum=$(($testnum + 1))
 
@@ -47,4 +48,16 @@ input=(
     abcdee
     ababab
 )
-test "provided example" input[@] 12
+test part1 "part 1: provided example" input[@] 12
+
+
+input=(
+    abcde
+    fghij
+    klmno
+    pqrst
+    fguij
+    axcye
+    wvxyz
+)
+test part2 "part 2: provided example" input[@] "fgij"

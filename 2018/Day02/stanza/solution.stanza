@@ -1,17 +1,31 @@
 defpackage solution :
     import core
+    import advent-of-code
     import io
+    import log
     import seq
 
 
 
-defn group-chars (s:String) :
-    val chars = to-seq(s)
-    to-list $ group(chars)
+;; -----------------------------------------------------------------------------
+;; Main
 
 
-defn char-counts (s:String) -> List<Int> :
-    map{length, _} $ group-chars(s)
+run $ get-mode()
+
+
+defmethod run (m:PartOneMode) :
+    println $ checksum $ get-lines()
+
+
+defmethod run (m:PartTwoMode) :
+    val [id1, id2] = find-correct-boxes $ get-lines()
+    println $ matching-chars(id1, id2)
+
+
+
+;; -----------------------------------------------------------------------------
+;; Part One
 
 
 defn checksum (box-ids:Seqable<String>) -> Int :
@@ -26,4 +40,42 @@ defn checksum (box-ids:Seqable<String>) -> Int :
     duplicate-count * triplicate-count
 
 
-println $ checksum $ get-lines()
+defn group-chars (s:String) :
+    val chars = to-seq(s)
+    to-list $ group(chars)
+
+
+defn char-counts (s:String) -> List<Int> :
+    map{length, _} $ group-chars(s)
+
+
+
+;; -----------------------------------------------------------------------------
+;; Part Two
+
+
+defn find-correct-boxes (ids:Seqable<String>) -> [String, String] :
+    label<[String, String]> return:
+        for id1 in ids do :
+            for id2 in ids do :
+                val diff-indexes = to-list $ differing-char-indexes(id1, id2)
+                log("1=%_ 2=%_ ixs=%_" % [id1, id2, diff-indexes])
+                if length(diff-indexes) == 1 :
+                    return([id1, id2])
+        fatal("Matching boxes not found")
+
+
+defn matching-chars (s1:String, s2:String) -> String :
+    string-join $ for (c1 in s1, c2 in s2) seq? :
+        if c1 == c2 :
+            One(c1)
+        else :
+            None()
+
+
+defn differing-char-indexes (s1:String, s2:String) -> Seq<Int> :
+    for (c1 in s1, c2 in s2, i in 1 to false) seq? :
+        if c1 != c2 :
+            One(i)
+        else :
+            None()
