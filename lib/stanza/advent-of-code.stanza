@@ -1,0 +1,40 @@
+;; advent-of-code.stanza -- Advent of Code Solution Framework
+;;
+;; This package provides a framework for the Advent of Code solutions.
+;; The framework helps make each solution consistent
+;; so they can all be structured and run the same way.
+
+defpackage advent-of-code :
+    import core
+
+
+public deftype Mode
+public deftype UnknownMode <: Mode
+public deftype PartOneMode <: Mode
+public deftype PartTwoMode <: Mode
+
+
+public defmulti run (m:Mode)
+
+
+defmethod run (_:UnknownMode) :
+    val binary-name = get(command-line-arguments(), 0)
+    println("Usage: %_ [-v|--verbose] part1|part2" % [binary-name])
+
+
+defn get-args () -> List<String> :
+    val args = command-line-arguments()
+    to-list $ for arg in args filter :
+        not prefix?(arg, "-")
+
+
+public defn get-mode () -> Mode :
+    val args = get-args()
+    if length(args) != 2 :
+        new UnknownMode
+    else :
+        val mode = get(args, 1)
+        switch {mode == _} :
+            "part1" : new PartOneMode
+            "part2" : new PartTwoMode
+            else : new UnknownMode
