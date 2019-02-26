@@ -1,0 +1,168 @@
+defpackage solution :
+    import core
+    import advent-of-code
+    import io
+
+
+
+;; -----------------------------------------------------------------------------
+;; Main
+
+
+run $ get-mode()
+
+
+defmethod run (m:PartOneMode) :
+    val lines = get-lines()
+    val claims = map(parse-claim, lines)
+    val g = Grid(1000, 1000)
+    for c in claims do :
+        claim-square(g, [left(c), top(c)], width(c), height(c))
+    println $ conflict-count(g)
+
+
+defmethod run (m:PartTwoMode) :
+    false
+
+
+
+;; -----------------------------------------------------------------------------
+;; Grid
+
+deftype Grid
+
+defmulti width (g:Grid) -> Int
+defmulti height (g:Grid) -> Int
+defmulti get-cell (g:Grid, x:Int, y:Int) -> Cell
+defmulti claim (g:Grid, x:Int, y:Int) -> False
+defmulti conflict-count (g:Grid) -> Int
+
+
+defn Grid (width:Int, height:Int) -> Grid :
+    val size = width * height
+    val cells = Array<Cell>(size)
+    for i in 0 to size do :
+        cells[i] = Cell()
+    new Grid :
+        defmethod width (this) :
+            width
+        defmethod height (this) :
+            height
+        defmethod get-cell (this, x:Int, y:Int) :
+            val i = x + (y * height)
+            cells[i]
+        defmethod claim (this, x:Int, y:Int) :
+            claim $ get-cell(this, x, y)
+        defmethod conflict-count (this) :
+            for c in cells count :
+                in-conflict?(c)
+
+
+defn claim-square (g:Grid, [square-x, square-y]:[Int, Int], width:Int, height:Int) :
+    var x = square-x
+    var y = square-y
+    while x < (square-x + width) and y < (square-y + height) :
+        claim(g, x, y)
+        x = x + 1
+        if x == (square-x + width) :
+            x = square-x
+            y = y + 1
+
+
+defmethod print (os:OutputStream, g:Grid) :
+    var x = 0
+    var y = 0
+    while x < width(g) and y < height(g) :
+        val cell = get-cell(g, x, y)
+        print(os, cell)
+        x = x + 1
+        if x == width(g) :
+            print(os, "\n")
+            x = 0
+            y = y + 1
+        else :
+            print(" ")
+
+
+
+;; -----------------------------------------------------------------------------
+;; Cell
+
+deftype Cell
+
+defmulti claim (c:Cell)
+defmulti in-conflict? (c:Cell) -> True|False
+
+
+defn Cell () -> Cell :
+    var claimed = 0
+    defn mark () -> String :
+        switch {claimed >= _} :
+            2 : "x"
+            1 : "#"
+            else : "."
+    new Cell :
+        defmethod claim (this) :
+            claimed = claimed + 1
+        defmethod print (os:OutputStream, this) :
+            print(os, mark())
+        defmethod in-conflict? (this) :
+            claimed >= 2
+
+
+
+;; -----------------------------------------------------------------------------
+;; Claim
+
+defstruct Claim :
+    id: Int
+    left: Int
+    top: Int
+    width: Int
+    height: Int
+
+
+defmethod print (os:OutputStream, c:Claim) :
+    print(os, "Claim(")
+    print(os, "id=%_" % [id(c)])
+    print(os, " left=%_" % [left(c)])
+    print(os, " top=%_" % [top(c)])
+    print(os, " width=%_" % [width(c)])
+    print(os, " height=%_" % [height(c)])
+    print(os, ")")
+
+
+defn not-digit? (c:Char) -> True|False :
+    not digit?(c)
+
+
+defn to-int! (s:String) -> Int :
+    val n = to-int(s)
+    match(n) :
+        (_:False) : fatal("Couldn't convert '%_' to an int" % [s])
+        (n:Int) : n
+
+
+defn parse-claim (s:String) -> Claim :
+    val words = split(s, " ")
+    val id = parse-id $ next(words)
+    next(words)  ; Skip '@'
+    val [left, top] = parse-position $ next(words)
+    val [width, height] = parse-size $ next(words)
+    Claim(id, left, top, width, height)
+
+
+defn parse-id (s:String) -> Int :
+    to-int! $ trim(not-digit?, s)
+
+
+defn parse-position (s:String) -> [Int, Int] :
+    val parts = to-list $ split{_, ","} $ trim(not-digit?, s)
+    val pos = to-tuple $ map(to-int!, parts)
+    [pos[0], pos[1]]
+
+
+defn parse-size (s:String) -> [Int, Int] :
+    val parts = to-list $ split(s, "x")
+    val size = to-tuple $ map(to-int!, parts)
+    [size[0], size[1]]
