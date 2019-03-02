@@ -36,7 +36,7 @@ function test {
 
 
 
-plan 1
+plan 2
 
 
 input=(
@@ -44,4 +44,6 @@ input=(
     "#2 @ 3,1: 4x4"
     "#3 @ 5,5: 2x2"
 )
+
 test part1 "part 1: provided example" input[@] 4
+test part2 "part 2: provided example" input[@] 3
