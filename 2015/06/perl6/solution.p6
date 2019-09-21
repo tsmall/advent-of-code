@@ -24,6 +24,30 @@ class Instruction {
     }
 }
 
+role InstructionInterpreter {
+    method interpret($action, $current-value) { ... }
+}
+
+class ObviousInterpreter does InstructionInterpreter {
+    method interpret($action, $current-value) {
+        given $action {
+            when TurnOn  { return True }
+            when TurnOff { return False }
+            when Toggle  { return not $current-value }
+        }
+    }
+}
+
+class AncientNordicElvishInterpreter does InstructionInterpreter {
+    method interpret($action, $current-value) {
+        given $action {
+            when TurnOn  { return $current-value + 1 }
+            when TurnOff { return max 0, ($current-value - 1) }
+            when Toggle  { return $current-value + 2 }
+        }
+    }
+}
+
 # ------------------------------------------------------------------------------
 # Grid
 
@@ -31,6 +55,7 @@ class LightGrid {
     my $size := 1_000_000;
     my $row-length := 1_000;
 
+    has InstructionInterpreter $.interpreter is required;
     has @!cells = False xx $size;
 
     method gist {
@@ -51,20 +76,15 @@ class LightGrid {
         return @!cells.grep(so *).elems;
     }
 
+    method total-brightness(--> Int) {
+        return @!cells.sum;
+    }
+
     method follow(Instruction $instruction) {
-        my $action-function;
-        given $instruction.action {
-            when TurnOn {
-                $action-function = { @!cells[$^index] = True };
-            }
-            when TurnOff {
-                $action-function = { @!cells[$^index] = False };
-            }
-            when Toggle {
-                $action-function = { @!cells[$^index] = not @!cells[$index] };
-            }
-        }
-        self!update-square($instruction.square, $action-function);
+        self!update-square(
+            $instruction.square,
+            $instruction.action
+        );
     }
 
     method !update-square($square, $action) {
@@ -76,14 +96,15 @@ class LightGrid {
 
         for $first-row .. $last-row -> $row {
             for $first-column .. $last-column -> $column {
-                self!update-point: Point.new(x => $column, y => $row), $action;
+                my $point = Point.new(x => $column, y => $row);
+                self!update-point($point, $action);
             }
         }
     }
 
     method !update-point($p, $action) {
-        my $cell-index = $p.x + ($p.y * $row-length);
-        $action($cell-index);
+        my $index = $p.x + ($p.y * $row-length);
+        @!cells[$index] = self.interpreter.interpret($action, @!cells[$index]);
     }
 }
 
@@ -143,10 +164,16 @@ sub parse(Str $instruction --> Instruction) {
 # ------------------------------------------------------------------------------
 # I/O
 
-my $grid = LightGrid.new;
+my $obvious-grid = LightGrid.new(interpreter => ObviousInterpreter.new);
+my $ancient-grid = LightGrid.new(interpreter => AncientNordicElvishInterpreter.new);
+my @grids = $obvious-grid, $ancient-grid;
 
 for $*IN.lines -> $line {
-    $grid.follow: $line.&parse;
+    @grids».follow: $line.&parse;
 }
 
-say $grid.light-on-count;
+say "--- Part One ---";
+say $obvious-grid.light-on-count;
+say "";
+say "--- Part Two ---";
+say $ancient-grid.total-brightness;
