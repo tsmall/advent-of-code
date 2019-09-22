@@ -98,6 +98,10 @@ class Wire {
         }
         return $!cached-value;
     }
+
+    method reset () {
+        $!cached-value = Nil;
+    }
 }
 
 
@@ -113,6 +117,13 @@ class Circuit {
             name => $name,
             input => $gate
         );
+    }
+
+    method reset-all-wires (Str :except($exception)) {
+        for %!wires.kv -> $name, $wire {
+            next if $name eq $exception;
+            $wire.reset();
+        }
     }
 
     method wire-value (Str $name) {
@@ -260,4 +271,12 @@ for $*IN.lines -> $line {
 }
 
 say '--- Part One ---';
+say 'a: ', $circuit.wire-value('a');
+
+say '';
+
+$circuit.add-wire('b', ConstantGate.new(value => $circuit.wire-value('a')));
+$circuit.reset-all-wires(except => 'b');
+
+say '--- Part Two ---';
 say 'a: ', $circuit.wire-value('a');
