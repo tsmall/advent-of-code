@@ -1,17 +1,38 @@
 class Grid { ... }
 
 
+enum State <On Off>;
+
+
 class Light {
-    has Int  $.index;
-    has Bool $.on is rw  = False;
-    has Int  @.neighbors = [];
+    has Int   $.index;
+    has Int   @.neighbors = [];
+    has State $.state     = Off;
+    has Bool  $.stuck     = False;
 
     method add-neighbor(Int $neighbor) {
         @!neighbors.push($neighbor);
     }
 
+    method on {
+        return $.state == On;
+    }
+
     method toggle {
-        $!on = not $!on;
+        given $.state {
+            when On  { self.turn(Off) }
+            when Off { self.turn(On)  }
+        }
+    }
+
+    method turn(State $new-state) {
+        return if $.stuck;
+        $!state = $new-state;
+    }
+
+    method stuck-on {
+        self.turn(On);
+        $!stuck = True;
     }
 
     method animate(Grid $current, Grid $new) {
@@ -19,12 +40,14 @@ class Light {
         my @ons       = @neighbors.grep: { .on };
 
         given $new.lights[$.index] -> $new {
+            my $new-on;
             if $.on {
-                $new.on = (@ons.elems ∈ (2, 3));
+                $new-on = (@ons.elems ∈ (2, 3));
             }
             else {
-                $new.on = (@ons.elems == 3);
+                $new-on = (@ons.elems == 3);
             }
+            $new.turn( $new-on ?? On !! Off );
         }
     }
 }
@@ -121,16 +144,47 @@ sub parse-initial-state(@lines, $size) {
 }
 
 
-sub MAIN(Int $size, Int $steps, Bool :$verbose) {
+sub clear-screen {
+    print "\e[2J";
+}
+
+
+sub cursor-home {
+    print "\e[H";
+}
+
+
+sub MAIN(Int $part, Int $size, Int $steps, Bool :$verbose, Bool :$animated) {
     my $buffer = GridBuffer.new(:$size);
 
     # Set up initial state
     my @lights-on = parse-initial-state($*IN.lines, $size);
     $buffer.current.lights[|@lights-on]».toggle;
 
+    if $part == 2 {
+        my @stuck-positions = (
+            0,                                 # top left
+            $size - 1,                         # top right
+            ($size - 1) * $size,               # bottom left
+            ($size - 1) * $size + ($size - 1), # bottom right
+        );
+
+        my @lights = $buffer.current.lights[|@stuck-positions];
+        @lights».stuck-on;
+
+        @lights = $buffer.next.lights[|@stuck-positions];
+        @lights».stuck-on;
+    }
+
     if $verbose {
         say "Initial state:\n";
         say $buffer.current, "\n";
+    }
+
+    if $animated {
+        clear-screen;
+        cursor-home;
+        say $buffer.current;
     }
 
     my $plural = '';
@@ -142,8 +196,15 @@ sub MAIN(Int $size, Int $steps, Bool :$verbose) {
             say $buffer.current, "\n";
             once { $plural = 's' };
         }
+
+        if $animated {
+            clear-screen;
+            cursor-home;
+            say $buffer.current;
+            sleep 1/2;
+        }
     }
 
-    say '--- Part One ---';
+    say "--- Part $part ---";
     say $buffer.current.lights.grep({ .on }).elems;
 }
