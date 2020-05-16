@@ -1,157 +1,7 @@
-# Types ------------------------------------------------------------------------
-
-enum Spell <MagicMissile Drain Shield Poison Recharge>;
-
-class Effect {
-    has Spell $.spell;
-    has Int   $.turns-left;
-
-    method ticked {
-        return self.clone(turns-left => $.turns-left - 1);
-    }
-}
-
-class GameState {
-    has Int    $.player-hp      is rw;
-    has Int    $.player-mana    is rw;
-    has Int    $.player-armor   is rw = 0;
-    has Int    $.mana-spent     is rw = 0;
-    has Int    $.boss-hp        is rw;
-    has Int    $.boss-damage;
-    has Effect @.active-effects is rw = ();
-
-    method clone { nextwith :active-effects(@!active-effects.clone), |%_ }
-}
-
-
-# Main -------------------------------------------------------------------------
-
-enum Part <Part1 Part2>;
-
-sub MAIN(Part $part) {
-    run($part);
-}
-
-multi run(Part1) {
-    my Int $least-mana-spent = 9_999_999;
-
-    my $initial-state = GameState.new(
-        player-hp   => 50,
-        player-mana => 500,
-        boss-hp     => 51,
-        boss-damage => 9,
-    );
-
-    play-all-possibilities($initial-state, $least-mana-spent);
-
-    say '--- Part One ---';
-    say $least-mana-spent;
-}
-
-sub play-all-possibilities(
-    GameState $current-state,
-    Int       $least-mana-spent is rw,
-    Int       $turn = 1
-) {
-    my @spells = MagicMissile, Drain, Shield, Poison, Recharge;
-
-    for @spells -> $spell {
-        with play-turn($current-state, $spell) -> $new-state {
-            if $new-state.boss-hp <= 0 and $new-state.player-hp > 0 {
-                if $new-state.mana-spent < $least-mana-spent {
-                    $least-mana-spent = $new-state.mana-spent;
-                }
-            }
-
-            if $new-state.player-hp > 0
-            and $new-state.boss-hp > 0
-            and $new-state.mana-spent < $least-mana-spent {
-                play-all-possibilities(
-                    $new-state,
-                    $least-mana-spent,
-                    $turn + 1
-                );
-            }
-        }
-    }
-}
-
-
-# Game logic -------------------------------------------------------------------
-
-sub play-turn(GameState $state, Spell $chosen-spell --> GameState) {
-    fail "Cannot cast spell" if not can-cast($state, $chosen-spell);
-
-    my $new-state = $state.clone;
-
-    # Player turn
-    my Effect @effects = apply-effects($new-state, $new-state.active-effects);
-    with cast-spell($new-state, $chosen-spell) -> $new-effect {
-        push @effects, $new-effect;
-    }
-
-    # Boss turn
-    $new-state.active-effects = apply-effects($new-state, @effects);
-    if $new-state.boss-hp > 0 {
-        boss-attack($new-state);
-    }
-
-    return $new-state;
-}
-
-sub can-cast(GameState $state, Spell $spell --> Bool) {
-    return (
-        cost($spell) <= $state.player-mana
-        and
-        $spell ∉ $state.active-effects.map({ $_.spell })
-    );
-}
-
-sub apply-effects(GameState $state, Effect @effects) {
-    gather for @effects -> $effect {
-        my $result = effect($effect.spell);
-        $state.player-mana += $result.mana-gain;
-        $state.boss-hp -= $result.damage;
-
-        if $effect.turns-left == 1 {
-            $result = effect-ended($effect.spell);
-            $state.player-armor += $result.armor-adjustment;
-        } else {
-            take $effect.ticked;
-        }
-    }
-}
-
-sub cast-spell(GameState $state, Spell $spell --> Effect) {
-    my $result = cast($spell);
-    $state.mana-spent += cost($spell);
-    $state.player-hp += $result.hp-gain;
-    $state.player-mana -= cost($spell) + $result.mana-gain;
-    $state.player-armor += $result.armor-adjustment;
-    $state.boss-hp -= $result.damage;
-
-    return $result.new-effect;
-}
-
-sub boss-attack(GameState $state) {
-    $state.player-hp -= ($state.boss-damage - $state.player-armor) max 1;
-}
-
-
-
 # Spells -----------------------------------------------------------------------
 
-constant %cost-of = (
-    MagicMissile => 53,
-    Drain        => 73,
-    Shield       => 113,
-    Poison       => 173,
-    Recharge     => 229,
-);
-
-sub cost(Spell $spell --> Int) {
-    return %cost-of{$spell};
-}
+class Effect    { ... }
+class GameState { ... }
 
 class SpellResult {
     has Int    $.hp-gain          = 0;
@@ -161,60 +11,217 @@ class SpellResult {
     has Effect $.new-effect       = Effect;
 
     my $.null = SpellResult.new;
+
+    method apply(GameState $state) {
+        $state.player-hp    += $.hp-gain;
+        $state.player-mana  += $.mana-gain;
+        $state.player-armor += $.armor-adjustment;
+        $state.boss-hp      -= $.damage;
+    }
 }
 
-multi cast(MagicMissile) {
-    return SpellResult.new(damage => 4);
+class Spell {
+    has Str         $.name;
+    has Int         $.cost;
+    has SpellResult $.cast-result;
+    has SpellResult $.effect-result = SpellResult.null;
+
+    method cast(GameState $state --> Effect) {
+        $.cast-result.apply($state);
+
+        $state.mana-spent  += $.cost;
+        $state.player-mana -= $.cost;
+
+        return $.cast-result.new-effect;
+    }
 }
-multi cast(Drain) {
-    return SpellResult.new(
-        damage  => 2,
-        hp-gain => 2,
-    );
+
+class Effect {
+    has Str         $.name;
+    has Int         $.turns-left;
+    has SpellResult $.active-result;
+    has SpellResult $.end-result;
+
+    method apply(GameState $state --> Effect) {
+        fail "Effect already ended" if $.turns-left <= 0;
+
+        $.active-result.apply($state);
+        $.end-result.apply($state) if $.turns-left == 1;
+        return self!ticked;
+    }
+
+    method !ticked {
+        return self.clone(turns-left => $.turns-left - 1);
+    }
 }
-multi cast(Shield) {
-    return SpellResult.new(
-        armor-adjustment => 7,
-        new-effect => Effect.new(
-            spell => Shield,
-            turns-left => 6,
+
+my @spells = (
+    Spell.new(
+        name => 'Magic Missile',
+        cost => 53,
+        cast-result => SpellResult.new(
+            damage => 4
         ),
-    );
-}
-multi cast(Poison) {
-    return SpellResult.new(
-        new-effect => Effect.new(
-            spell => Poison,
-            turns-left => 6,
+    ),
+    Spell.new(
+        name => 'Drain',
+        cost => 73,
+        cast-result => SpellResult.new(
+            damage => 2,
+            hp-gain => 2
         ),
-    );
-}
-multi cast(Recharge) {
-    return SpellResult.new(
-        new-effect => Effect.new(
-            spell => Recharge,
-            turns-left => 5,
+    ),
+    Spell.new(
+        name => 'Shield',
+        cost => 113,
+        cast-result => SpellResult.new(
+            armor-adjustment => 7,
+            new-effect => Effect.new(
+                name => 'Shield',
+                turns-left => 6,
+                active-result => SpellResult.null,
+                end-result => SpellResult.new(:armor-adjustment(-7)),
+            ),
         ),
+    ),
+    Spell.new(
+        name => 'Poison',
+        cost => 173,
+        cast-result => SpellResult.new(
+            new-effect => Effect.new(
+                name => 'Poison',
+                turns-left => 6,
+                active-result => SpellResult.new(:damage(3)),
+                end-result => SpellResult.null,
+            ),
+        )
+    ),
+    Spell.new(
+        name => 'Recharge',
+        cost => 229,
+        cast-result => SpellResult.new(
+            new-effect => Effect.new(
+                name => 'Recharge',
+                turns-left => 5,
+                active-result => SpellResult.new(:mana-gain(101)),
+                end-result => SpellResult.null,
+            ),
+        )
+    ),
+);
+
+
+# Game Logic -------------------------------------------------------------------
+
+role Observer { ... }
+
+class GameState {
+    has Int      $.player-hp      is rw;
+    has Int      $.player-mana    is rw;
+    has Int      $.player-armor   is rw = 0;
+    has Int      $.mana-spent     is rw = 0;
+    has Int      $.boss-hp        is rw;
+    has Int      $.boss-damage;
+    has Bool     $.hard-mode;
+    has Effect   @.active-effects is rw = ();
+    has Observer @.observers            = ();
+
+    method clone { nextwith :active-effects(@!active-effects.clone), |%_ }
+
+    method play-all-possibilities() {
+        for @spells -> $spell {
+            next if not self!can-cast($spell);
+
+            given self.clone -> $next {
+                $next!play-turn($spell);
+                $next.play-all-possibilities() if $next!should-continue;
+            }
+        }
+    }
+
+    method !can-cast(Spell $spell --> Bool) {
+        return (
+            $spell.cost <= $.player-mana
+            and
+            $spell.name ∉ $.active-effects.map({ $_.name })
+        );
+    }
+    
+    method !should-continue(--> Bool) {
+        return so (
+                $.player-hp > 0
+            and $.boss-hp > 0
+            and $.observers».should-continue(self).all
+        );
+    }
+
+    method !play-turn(Spell $spell) {
+        # Player turn
+        if $.hard-mode {
+            $!player-hp -= 1;
+            return if $.player-hp <= 0;
+        }
+        self!apply-effects();
+        with $spell.cast(self) -> $new-effect {
+            push @!active-effects, $new-effect;
+        }
+
+        # Boss turn
+        self!apply-effects();
+        if $.boss-hp > 0 {
+            $!player-hp -= ($.boss-damage - $.player-armor) max 1
+        }
+
+        # See if the game is over
+        if $.boss-hp <= 0 and $.player-hp > 0 {
+            $.observers».player-won(self);
+        }
+    }
+
+    method !apply-effects() {
+        @!active-effects = gather for @!active-effects -> $effect {
+            given $effect.apply(self) -> $new-effect {
+                take $new-effect if $new-effect.turns-left > 0;
+            }
+        };
+    }
+}
+
+role Observer {
+    method player-won(GameState $state) { ... }
+    method should-continue(GameState $state --> Bool) { ... }
+}
+
+class LeastManaSpentObserver does Observer {
+    has Int $.least-mana-spent = 9_999_999;
+
+    method player-won(GameState $state) {
+        $!least-mana-spent = $.least-mana-spent min $state.mana-spent;
+    }
+
+    method should-continue(GameState $state --> Bool) {
+        return $state.mana-spent < $.least-mana-spent;
+    }
+}
+
+
+# Main -------------------------------------------------------------------------
+
+enum Part <Part1 Part2>;
+
+sub MAIN(Part $part) {
+    my $observer = LeastManaSpentObserver.new;
+    my $game = GameState.new(
+        player-hp   => 50,
+        player-mana => 500,
+        boss-hp     => 51,
+        boss-damage => 9,
+        hard-mode   => $part eqv Part2,
+        observers   => $observer,
     );
-}
 
-multi effect(Poison) {
-    return SpellResult.new(damage => 3);
-}
-multi effect(Recharge) {
-    return SpellResult.new(mana-gain => 101);
-}
-multi effect(Spell) {
-    return SpellResult.null;
-}
+    $game.play-all-possibilities();
 
-multi effect-ended(Shield) {
-    return SpellResult.new(armor-adjustment => -7);
+    say "--- {$part} ---";
+    say $observer.least-mana-spent;
 }
-multi effect-ended($spell) {
-    return SpellResult.null;
-}
-
-
-# Parsing ----------------------------------------------------------------------
-
