@@ -1,6 +1,9 @@
-sub MAIN {
+enum Part (Part1 => 3, Part2 => 4);
+
+sub MAIN(Part $part) {
     my Int @weights      = $*IN.lines».Int;
-    my Int $group-weight = @weights.sum div 3;
+    my Int $group-count  = $part.value;
+    my Int $group-weight = @weights.sum div $group-count;
 
     my @group-ones;
     {
@@ -17,7 +20,7 @@ sub MAIN {
 
     my @entanglements = @group-ones.map: { quantum-entanglement($_) };
 
-    say '--- Part1 ---';
+    say "--- {$part} ---";
     say @entanglements.min;
 }
 
