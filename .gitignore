@@ -3,3 +3,6 @@ solution
 
 # Ignore any nrepl files
 .nrepl-port
+
+# Ignore any installed Clojure dependencies
+.cpcache
