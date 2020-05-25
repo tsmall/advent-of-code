@@ -1,2 +1,5 @@
 # Ignore any compiled solutions.
 solution
+
+# Ignore any nrepl files
+.nrepl-port
