@@ -1,86 +1,77 @@
-class Molecule {
-    has Str $!start;
-    has Str @!atoms;
+enum Part <Part1 Part2>;
 
-    submethod BUILD(:$start, :@atoms) {
-        $!start = $start;
-        @!atoms = @atoms;
-    }
+sub MAIN(Part $part) {
+    my %replacements = parse($part);
+    my $molecule = $*IN.get;
 
-    method atoms {
-        return gather {
-            my $atom = '';
-            for $!start.comb -> $char {
-                if $char ~~ /<upper>/ {
-                    take $atom if $atom;
-                    $atom = $char;
-                }
-                else {
-                    $atom ~= $char;
-                }
+    my $answer = run($part, %replacements, $molecule);
 
-                if $atom ∈ @!atoms {
-                    take $atom;
-                    $atom = '';
-                }
-            }
-        }
-    }
+    say "--- {$part} ---";
+    say $answer;
 }
 
-
-class FusionPlant {
-    has $.molecule;
-    has %.replacements;
-
-    method possibilities {
-        my @atoms = $.molecule.atoms;
-        return gather {
-            my @prefix = [];
-            my @suffix = @atoms.Array;
-
-            while @suffix {
-                my $current = @suffix.shift;
-                if %.replacements{$current}:exists {
-                    for %.replacements{$current} -> @replacements {
-                        for @replacements {
-                            my @possibility = flat @prefix, $_, @suffix;
-                            take @possibility.join;
-                        }
-                    }
-                }
-                @prefix.push($current);
-            }
-        }
-    }
-}
-
-
-sub parse-line(%replacements, $line) {
-    my ($key, $value) = $line.split(' => ');
-    %replacements{$key} = |%replacements{$key}, $value;
-}
-
-
-sub MAIN {
+multi parse(Part1) {
     my %replacements is default( () );
     for $*IN.lines -> $line {
         last if not $line;
-        parse-line(%replacements, $line);
+        my ($key, $value) = $line.split(' => ');
+        %replacements{$key} = |%replacements{$key}, $value;
     }
 
-    my $start = $*IN.get;
+    return %replacements;
+}
 
-    my $molecule = Molecule.new(
-        start => $start,
-        atoms => %replacements.keys.list,
-    );
+multi parse(Part2) {
+    my %replacements is default( () );
+    for $*IN.lines -> $line {
+        last if not $line;
+        my ($key, $value) = $line.split(' => ');
+        %replacements{$value} = |%replacements{$value}, $key;
+    }
 
-    my $machine = FusionPlant.new(
-        :$molecule,
-        :%replacements,
-    );
+    return %replacements;
+}
 
-    say '--- Part One ---';
-    say $machine.possibilities.Set.elems;
+multi run(Part1, %replacements, $molecule --> Int) {
+    my $results = step(%replacements, $molecule);
+    return $results.elems;
+}
+
+# This solution only sometimes works. Sometimes it will get stuck in an
+# infinite loop because it can't make any more replacements. When it does work
+# it finds the answer quickly though. So ... good enough for who it's for!
+multi run(Part2, %replacements, $start --> Int) {
+    my $steps    = 0;
+    my $molecule = $start;
+
+    until $molecule eq 'e' {
+        my $key = %replacements.keys.pick;
+        $molecule = $molecule.subst: $key, {
+            $steps++;
+            %replacements{$key}
+        };
+    }
+
+    return $steps;
+}
+
+sub step(%replacements, $start) {
+    my $results = SetHash.new;
+    my $molecule = $start.clone;
+
+    for %replacements.pairs -> $pair {
+        my @indices = $molecule.indices($pair.key);
+        my @replacements = $pair.value.values;
+
+        for @indices -> $i {
+            for @replacements -> $atom {
+                my $ref := $molecule.substr-rw($i, $pair.key.chars);
+                $ref = $atom;
+                $results{$molecule}++;
+                $ref = $pair.key;
+            }
+        }
+    }
+
+    return $results;
 }
