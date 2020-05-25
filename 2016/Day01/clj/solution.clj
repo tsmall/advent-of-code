@@ -6,8 +6,8 @@
   [:north [0 0]])
 
 (defn turn
-  [dir instr]
-  (case [dir instr]
+  [dir lr]
+  (case [dir lr]
     [:north :left]  :west
     [:north :right] :east
     [:east  :left]  :north
@@ -22,21 +22,24 @@
   (is (= :south (turn :east :right))))
 
 (defn walk
-  [[x y] dir steps]
-  (case dir
-    :north [x (+ y steps)]
-    :east  [(+ x steps) y]
-    :south [x (- y steps)]
-    :west  [(- x steps) y]))
+  [coord dir steps]
+  (let [[x y] coord]
+    (case dir
+      :north [x (+ y steps)]
+      :east  [(+ x steps) y]
+      :south [x (- y steps)]
+      :west  [(- x steps) y])))
 
 (defn move
-  [[dir pos] instr steps]
-  (let [new-dir (turn dir instr)
-        new-pos (walk pos new-dir steps)]
-    [new-dir new-pos]))
+  [pos instr]
+  (let [[dir coord] pos
+        [lr steps]  instr
+        new-dir     (turn dir lr)
+        new-coord   (walk coord new-dir steps)]
+    [new-dir new-coord]))
 
 (deftest test-move
-  (is (= [:east [0 5]] (move startpos :right 5))))
+  (is (= [:east [5 0]] (move startpos [:right 5]))))
 
 (defn blocks-away
   [pos]
@@ -61,9 +64,17 @@
   (->> (str/split s #", ")
        (map parse)))
 
+(deftest test-parse-input
+  (is (= [[:right 2] [:left 3]]
+         (parse-input "R2, L3")))
+  (is (= [[:right 2] [:right 2] [:right 2]]
+         (parse-input "R2, R2, R2")))
+  (is (= [[:left 10] [:right 42]]
+         (parse-input "L10, R42"))))
+
 (defn part1
   [input]
-  (let [end (reduce #(apply move %1 %2)
+  (let [end (reduce #(move %1 %2)
                     startpos
                     (parse-input input))
         [dir pos] end]
