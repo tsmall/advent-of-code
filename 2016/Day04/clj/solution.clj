@@ -26,16 +26,49 @@
   (is (= "oarel" (checksum "not-a-real-room")))
   (is (not= "decoy" (checksum "totally-real-room"))))
 
+(defn rotate
+  [rot ch]
+  (let [c (+ rot (int ch))]
+    (char
+     (if (> c (int \z))
+       (+ (int \a) (- c (int \z) 1))
+       c))))
+
+(defn rotate-word
+  [rot s]
+  (str/join (map (partial rotate rot) s)))
+
+(defn decrypt
+  [room]
+  (let [rot   (mod (:sector room) 26)
+        words (str/split (:name room) #"-")]
+    (assoc room
+           :decrypted (->> words
+                           (map (partial rotate-word rot))
+                           (str/join " ")))))
+
+(deftest decrypt-test
+  (is (= "very encrypted name"
+         (:decrypted
+          (decrypt {:name "qzmt-zixmtkozy-ivhz"
+                    :sector 343})))))
+
 (defn valid?
   [room]
   (= (:checksum room) (checksum (:name room))))
 
-(defn parse-room
-  [s]
-  (let [matches (re-matches #"([^\d]+)-(\d+)\[([^\]]+)\]" s)]
-    {:name     (nth matches 1)
-     :sector   (Integer/parseInt (nth matches 2))
-     :checksum (nth matches 3)}))
+(let [regex #"([^\d]+)-(\d+)\[([^\]]+)\]"]
+  (defn parse-room
+    [s]
+    (let [matches (re-matches regex s)]
+      {:name     (nth matches 1)
+       :sector   (Integer/parseInt (nth matches 2))
+       :checksum (nth matches 3)})))
+
+(defn north-pole-room?
+  [room]
+  (= "northpole object storage"
+     (:decrypted room)))
 
 (deftest part1-examples
   (is (valid? (parse-room "aaaaa-bbb-z-y-x-123[abxyz]")))
@@ -52,6 +85,15 @@
        (map :sector)
        (apply +)))
 
+(defn part2
+  []
+  (->> (slurp "../input.txt")
+       (str/split-lines)
+       (map parse-room)
+       (map decrypt)
+       (some #(if (north-pole-room? %) %))))
+
 (comment
   (run-all-tests)
-  (part1))
+  (part1)
+  (part2))
