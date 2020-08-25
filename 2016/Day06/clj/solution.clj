@@ -14,15 +14,22 @@
        (ffirst)))
 
 
+(defn least-frequent
+  [frequencies]
+  (->> (seq frequencies)
+       (sort-by second <)
+       (ffirst)))
+
+
 (defn corrected
   "Returns a string, the error-corrected message recovered
   from the sequence of messages sent using repetition code."
-  [messages]
+  [messages code-fn]
   (->> messages
        (map #(str/split %1 #""))
        (transpose)
        (map frequencies)
-       (map most-frequent)
+       (map code-fn)
        (str/join)))
 
 
@@ -32,9 +39,19 @@
   ([f]
    (-> (slurp f)
        (str/split-lines)
-       (corrected))))
+       (corrected most-frequent))))
+
+
+(defn part2
+  ([]
+   (part2 "../input.txt"))
+  ([f]
+   (-> (slurp f)
+       (str/split-lines)
+       (corrected least-frequent))))
 
 
 (comment
   (part1)  ; "mshjnduc"
+  (part2)  ; "apfeeebz"
   )
