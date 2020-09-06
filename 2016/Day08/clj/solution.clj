@@ -108,6 +108,21 @@
     :row (rotate-row screen (:index op) (:amount op))))
 
 
+(defn char-at
+  [screen point]
+  (if (contains? screen point)
+    \#
+    \.))
+
+
+(defn draw
+  [screen]
+  (doseq [y (range *row-count*)]
+    (doseq [x (range *column-count*)]
+      (print (char-at screen [x y])))
+    (println)))
+
+
 (defn part1
   []
   (->> (slurp "../input.txt")
@@ -117,6 +132,17 @@
        (count)))
 
 
+(defn part2
+  []
+  (->> (slurp "../input.txt")
+       (str/split-lines)
+       (map parse)
+       (reduce #(apply-operation %2 %1) initial-screen)
+       (draw)))
+
+
 (comment
   (run-all-tests)
-  (part1))
+  (part1)
+  (part2)
+  )
