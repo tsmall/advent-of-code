@@ -8,8 +8,10 @@ actor Main
     env.input(recover InputParser(this) end)
 
   be solve(input: String val) =>
-    let answer = Captcha(input)
-    _env.out.print("Part 1: " + answer.string())
+    let answer1 = Captcha.one(input)
+    let answer2 = Captcha.two(input)
+    _env.out.print("Part 1: " + answer1.string())
+    _env.out.print("Part 2: " + answer2.string())
 
 
 class InputParser is InputNotify
