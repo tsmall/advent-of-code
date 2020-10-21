@@ -16,3 +16,13 @@ class val Row
       end
     end
     max - min
+
+  fun even_division(): U64 ? =>
+    for x in _numbers.values() do
+      for y in _numbers.values() do
+        if (x != y) and ((x % y) == 0) then
+          return x / y
+        end
+      end
+    end
+    error

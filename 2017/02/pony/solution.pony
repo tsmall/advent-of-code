@@ -9,7 +9,12 @@ actor Main
     env.input(recover InputParser(this) end)
 
   be solve(sheet: Spreadsheet) =>
-    _env.out.print("Part 1: " + sheet.checksum().string())
+    try
+      _env.out.print("Part 1: " + sheet.checksum(DifferenceChecksumMode)?.string())
+      _env.out.print("Part 2: " + sheet.checksum(DivisibleChecksumMode)?.string())
+    else
+      _env.err.print("Invalid input")
+    end
 
 
 class InputParser is InputNotify

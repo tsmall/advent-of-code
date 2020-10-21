@@ -1,3 +1,9 @@
+type ChecksumMode is (DifferenceChecksumMode | DivisibleChecksumMode)
+
+primitive DifferenceChecksumMode
+primitive DivisibleChecksumMode
+
+
 class val Spreadsheet
   let _rows: Array[Row] val
 
@@ -13,9 +19,12 @@ class val Spreadsheet
       rows
     end
 
-  fun val checksum(): U64 =>
+  fun val checksum(mode: ChecksumMode): U64 ? =>
     var sum = U64(0)
     for row in _rows.values() do
-      sum = sum + row.difference()
+      sum = sum + match mode
+      | DifferenceChecksumMode => row.difference()
+      | DivisibleChecksumMode => row.even_division()?
+      end
     end
     sum
