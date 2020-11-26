@@ -1,0 +1,63 @@
+# Built and tested against Inko v0.8.1
+
+import std::fs::file::(self, ReadOnlyFile)
+import std::io::(Error as IOError)
+import std::stdio::stdout
+
+
+let NEWLINE = "\n".byte(0)
+
+impl ReadOnlyFile {
+  def each_char(block: do (String)) !! IOError {
+    let bytes = ByteArray.new
+    let mut bytes_read = try self.read_bytes(bytes, 1)
+    { bytes_read == 1 }.while_true {
+      block.call(bytes.drain_to_string)
+      bytes_read = try self.read_bytes(bytes, 1)
+    }
+  }
+
+  def each_line(block: do (String)) !! IOError {
+    let bytes = ByteArray.new
+    let line = ByteArray.new
+
+    let mut bytes_read = try self.read_bytes(bytes, 1)
+    { bytes_read == 1 }.while_true {
+      let char = bytes[0]!
+      (char == NEWLINE).if(
+        true: {
+          block.call(line.drain_to_string)
+        },
+        false: {
+          line.push(char)
+        }
+      )
+      bytes.clear
+      bytes_read = try self.read_bytes(bytes, 1)
+    }
+  }
+}
+
+
+# -------------------------------------------------------------
+# Char-By-Char
+
+let char_input = try! file.read_only('chars.txt')
+
+try! char_input.each_char do (char) {
+  stdout.print('CHAR: ' + char)
+}
+
+char_input.close
+
+
+# -------------------------------------------------------------
+# Line-By-Line
+
+let line_input = try! file.read_only('lines.txt')
+
+try! line_input.each_line do (line) {
+  stdout.print('LINE: ' + line)
+}
+
+line_input.close
