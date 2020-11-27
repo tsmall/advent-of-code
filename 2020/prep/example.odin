@@ -9,8 +9,8 @@ main :: proc() {
 		defer os.close(char_file);
 
 		for {
-			char, ok := next_char(char_file);
-			if !ok do break;
+			char, done := next_char(char_file);
+			if done do break;
 
 			fmt.printf("CHAR: %c\n", char);
 		}
@@ -22,8 +22,8 @@ main :: proc() {
 
 		buffer: [100]u8;
 		for {
-			line, ok := next_line(line_file, buffer[:]);
-			if !ok do break;
+			line, done := next_line(line_file, buffer[:]);
+			if done do break;
 
 			fmt.printf("LINE: %s\n", line);
 		}
@@ -42,7 +42,7 @@ open_input :: proc(path: string) -> os.Handle {
 }
 
 
-next_char :: proc(fd: os.Handle) -> (u8, bool) {
+next_char :: proc(fd: os.Handle) -> (char: u8, done: bool) {
 	buffer: [1]u8;
 
 	bytes_read, err := os.read(fd, buffer[:]);
@@ -52,28 +52,28 @@ next_char :: proc(fd: os.Handle) -> (u8, bool) {
 	}
 
 	if bytes_read == 0 {
-		return 0, false;
+		return 0, true;
 	}
 
-	return buffer[0], true;
+	return buffer[0], false;
 }
 
 
-next_line :: proc(fd: os.Handle, buffer: []u8) -> (string, bool) {
+next_line :: proc(fd: os.Handle, buffer: []u8) -> (line: string, done: bool) {
 	index := 0;
 	for {
-		char, ok := next_char(fd);
-		if !ok {
-			return string(buffer[:index]), false;
+		char, done := next_char(fd);
+		if done {
+			return string(buffer[:index]), true;
 		}
 
 		if char == '\n' {
-			return string(buffer[:index]), true;
+			return string(buffer[:index]), false;
 		}
 
 		if index > len(buffer) {
 			fmt.fprintf(os.stderr, "ERROR: Buffer too small\n");
-			return "", false;
+			return "", true;
 		}
 
 		buffer[index] = char;
