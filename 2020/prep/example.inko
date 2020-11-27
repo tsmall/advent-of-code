@@ -10,10 +10,8 @@ let NEWLINE = "\n".byte(0)
 impl ReadOnlyFile {
   def each_char(block: do (String)) !! IOError {
     let bytes = ByteArray.new
-    let mut bytes_read = try self.read_bytes(bytes, 1)
-    { bytes_read == 1 }.while_true {
+    { (try self.read_bytes(bytes, 1)) == 1 }.while_true {
       block.call(bytes.drain_to_string)
-      bytes_read = try self.read_bytes(bytes, 1)
     }
   }
 
@@ -21,8 +19,7 @@ impl ReadOnlyFile {
     let bytes = ByteArray.new
     let line = ByteArray.new
 
-    let mut bytes_read = try self.read_bytes(bytes, 1)
-    { bytes_read == 1 }.while_true {
+    { (try self.read_bytes(bytes, 1)) == 1 }.while_true {
       let char = bytes[0]!
       (char == NEWLINE).if(
         true: {
@@ -33,7 +30,6 @@ impl ReadOnlyFile {
         }
       )
       bytes.clear
-      bytes_read = try self.read_bytes(bytes, 1)
     }
   }
 }
