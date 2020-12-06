@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define TICKET_COUNT 843
+
 int
 seat (const char *ticket)
 {
@@ -59,22 +61,60 @@ id (const char *ticket)
   return (row (ticket) * 8) + seat (ticket);
 }
 
-int
-main (int argc, char **argv)
+void
+read_ids (int *all_ids)
 {
-  int highest_id = 0;
-
+  int index = 0;
   size_t length = 11;
   char *ticket = malloc (length * sizeof (char));
   while (getline (&ticket, &length, stdin) > 0)
     {
-      int n = id (ticket);
-      if (n > highest_id)
-        highest_id = n;
+      all_ids[index] = id (ticket);
+      index++;
     }
 
-  printf ("Part 1: %d\n", highest_id);
-
   free (ticket);
+}
+
+int
+compare_ids (const void *id1, const void *id2)
+{
+  int *one = (int *)id1;
+  int *two = (int *)id2;
+
+  if (*one > *two)
+    return 1;
+  else if (*one < *two)
+    return -1;
+  else
+    return 0;
+}
+
+int
+missing_id (int all_ids[TICKET_COUNT])
+{
+  int prev = all_ids[0];
+  for (int i = 1; i < TICKET_COUNT; i++)
+    {
+      if ((all_ids[i] - 1) != prev)
+        return all_ids[i] - 1;
+
+      prev = all_ids[i];
+    }
+
+  return -1;
+}
+
+int
+main (int argc, char **argv)
+{
+  int all_ids[TICKET_COUNT];
+
+  read_ids (all_ids);
+  qsort (all_ids, TICKET_COUNT, sizeof (int), &compare_ids);
+
+  printf ("Part 1: %d\n", all_ids[TICKET_COUNT - 1]);
+  printf ("Part 2: %d\n", missing_id (all_ids));
+
   return 0;
 }
