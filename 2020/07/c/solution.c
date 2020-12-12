@@ -4,12 +4,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct bag_contents_t bag_contents_t;
 typedef struct bag_t bag_t;
+
 struct bag_t
 {
   char adjective[25];
   char color[25];
-  bag_t *contents[4];
+  bag_contents_t *contents[4];
+};
+
+struct bag_contents_t
+{
+  int count;
+  bag_t *bag;
 };
 
 void
@@ -19,6 +27,14 @@ bag_init (bag_t *bag)
   bag->color[0] = '\0';
   for (int i = 0; i < 4; i++)
     bag->contents[i] = NULL;
+}
+
+void
+bag_free (bag_t *bag)
+{
+  for (int i = 0; i < 4; i++)
+    if (bag->contents[i] != NULL)
+      free (bag->contents[i]);
 }
 
 bool
@@ -31,14 +47,14 @@ bag_is_mine (bag_t *bag)
 bool
 bag_can_contain_mine (bag_t bag)
 {
-  bag_t *contained;
+  bag_contents_t *contained;
   for (int i = 0; i < 4; i++)
     {
       contained = bag.contents[i];
       if (contained == NULL)
         return false;
 
-      if (bag_is_mine (contained))
+      if (bag_is_mine (contained->bag))
         return true;
     }
   
@@ -46,17 +62,43 @@ bag_can_contain_mine (bag_t bag)
 }
 
 void
-bag_add_contained (bag_t *parent, bag_t *child)
+bag_add_contained (bag_t *parent, bag_t *child, int count)
 {
   for (int i = 0; i < 4; i++)
     if (parent->contents[i] == NULL)
       {
-        parent->contents[i] = child;
+        bag_contents_t *contents = malloc (sizeof (bag_contents_t));
+        assert (contents != NULL);
+
+        contents->count = count;
+        contents->bag = child;
+        parent->contents[i] = contents;
         return;
       }
 
   // If we got here, we ran out of room, which shouldn't happen.
   assert (false);
+}
+
+int
+bag_contents_count (bag_t *bag)
+{
+  int count = 0;
+
+  for (int i = 0; i < 4; i++)
+    {
+      bag_contents_t *contents = bag->contents[i];
+      if (contents == NULL)
+        break;
+
+      // Count the contained bags themselves ...
+      count += contents->count;
+
+      // ... and all the bags they contain.
+      count += contents->count * bag_contents_count (contents->bag);
+    }
+
+  return count;
 }
 
 bool
@@ -88,6 +130,14 @@ set_alloc (set_t *set, int size)
 void
 set_free (set_t *set)
 {
+  for (int i = 0; i < set->last_index; i++)
+    {
+      bag_t *bag = &set->contents[i];
+      for (int j = 0; j < 4; j++)
+        if (bag->contents[j] != NULL)
+          free (bag->contents[j]);
+    }
+
   free (set->contents);
   set->size = 0;
   set->last_index = 0;
@@ -176,8 +226,9 @@ bool
 bag_contains_any (bag_t *bag, set_ref_t *set)
 {
   for (int i = 0; i < 4; i++)
-    if (set_ref_contains (set, bag->contents[i]))
-      return true;
+    if (bag->contents[i] != NULL)
+      if (set_ref_contains (set, bag->contents[i]->bag))
+        return true;
 
   return false;
 }
@@ -206,7 +257,7 @@ set_next (set_iterator_t *iter)
 }
 
 void
-parse_input (set_t *all_bags, set_ref_t *starter_set)
+parse_input (set_t *all_bags, set_ref_t *starter_set, bag_t **my_bag)
 {
   bag_t bag;
   bag_init (&bag);
@@ -219,12 +270,16 @@ parse_input (set_t *all_bags, set_ref_t *starter_set)
 
       bag_t contained;
       bag_init (&contained);
-      while (scanf ("%*d %s %s %*s", contained.adjective, contained.color) == 2)
+      int count;
+      while (scanf ("%d %s %s %*s", &count, contained.adjective, contained.color) == 3)
         {
           bag_t *child = set_add (all_bags, contained);
-          bag_add_contained (parent, child);
+          bag_add_contained (parent, child, count);
         }
       scanf ("no other bags.");
+
+      if (bag_is_mine (parent))
+        *my_bag = parent;
 
       if (bag_can_contain_mine (*parent))
         set_ref_add (starter_set, parent);
@@ -239,7 +294,9 @@ main (int argc, char **argv)
 
   set_ref_t bags_able_to_hold_mine = {0};
 
-  parse_input (&all_bags, &bags_able_to_hold_mine);
+  bag_t *my_bag;
+
+  parse_input (&all_bags, &bags_able_to_hold_mine, &my_bag);
 
   set_ref_t current;
   set_ref_t next = {0};
@@ -261,6 +318,7 @@ main (int argc, char **argv)
     }
 
   printf ("Part 1: %d\n", set_ref_size (&bags_able_to_hold_mine));
+  printf ("Part 2: %d\n", bag_contents_count (my_bag));
 
   set_free (&all_bags);
   return 0;
