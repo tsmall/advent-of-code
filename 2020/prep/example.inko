@@ -1,4 +1,4 @@
-# Built and tested against Inko v0.8.1
+# Built and tested against Inko v0.9.0
 
 import std::fs::file::(self, ReadOnlyFile)
 import std::io::(Error as IOError)
@@ -10,7 +10,7 @@ let NEWLINE = "\n".byte(0)
 impl ReadOnlyFile {
   def each_char(block: do (String)) !! IOError {
     let bytes = ByteArray.new
-    { (try self.read_bytes(bytes, 1)) == 1 }.while_true {
+    while({ (try self.read_bytes(bytes, 1)) == 1 }) {
       block.call(bytes.drain_to_string)
     }
   }
@@ -19,8 +19,8 @@ impl ReadOnlyFile {
     let bytes = ByteArray.new
     let line = ByteArray.new
 
-    { (try self.read_bytes(bytes, 1)) == 1 }.while_true {
-      let char = bytes[0]!
+    while({ (try self.read_bytes(bytes, 1)) == 1 }) {
+      let char = bytes[0]
       (char == NEWLINE).if(
         true: {
           block.call(line.drain_to_string)
