@@ -82,18 +82,6 @@ direction_description (direction_t dir)
 
 
 void
-print_boat (boat_t boat)
-{
-  printf ("boat_t { %s, %d, %d }\n",
-          direction_description (boat.dir),
-          boat.x, boat.y);
-}
-
-
-/* Solution -------------------------------------------------------- */
-
-
-void
 move_forward (boat_t *boat, int amount)
 {
   switch (boat->dir)
@@ -126,7 +114,65 @@ change_direction (boat_t *boat, int degrees)
 
 
 void
-follow (instruction_t instruction, boat_t *boat)
+print_boat (boat_t boat)
+{
+  printf ("boat_t { %s, %d, %d }\n",
+          direction_description (boat.dir),
+          boat.x, boat.y);
+}
+
+
+/* Waypoint -------------------------------------------------------- */
+
+
+typedef struct waypoint waypoint_t;
+struct waypoint
+{
+  int x;
+  int y;
+};
+
+
+void
+rotate_waypoint (waypoint_t *waypoint, int degrees)
+{
+  if (degrees < 0)
+    degrees = 360 + degrees;
+
+  int x = waypoint->x;
+  int y = waypoint->y;
+  switch (degrees)
+    {
+      case 90:
+        waypoint->x = y;
+        waypoint->y = x * -1;
+        return;
+
+      case 180:
+        waypoint->x = x * -1;
+        waypoint->y = y * -1;
+        return;
+
+      case 270:
+        waypoint->x = y * -1;
+        waypoint->y = x;
+        return;
+    }
+}
+
+
+void
+print_waypoint (waypoint_t waypoint)
+{
+  printf ("waypoint_t { %d, %d }\n", waypoint.x, waypoint.y);
+}
+
+
+/* Solution -------------------------------------------------------- */
+
+
+void
+follow_guessed_rules (instruction_t instruction, boat_t *boat)
 {
   switch (instruction.action)
     {
@@ -161,16 +207,67 @@ follow (instruction_t instruction, boat_t *boat)
 }
 
 
+void
+follow_actual_rules (instruction_t instruction, boat_t *boat, waypoint_t *waypoint)
+{
+  switch (instruction.action)
+    {
+      case 'E':
+        waypoint->x += instruction.value;
+        return;
+
+      case 'F':
+        boat->x += waypoint->x * instruction.value;
+        boat->y += waypoint->y * instruction.value;
+        return;
+
+      case 'L':
+        rotate_waypoint (waypoint, instruction.value * -1);
+        return;
+
+      case 'N':
+        waypoint->y += instruction.value;
+        return;
+
+      case 'R':
+        rotate_waypoint (waypoint, instruction.value);
+        return;
+
+      case 'S':
+        waypoint->y -= instruction.value;
+        return;
+
+      case 'W':
+        waypoint->x -= instruction.value;
+        return;
+    }
+}
+
+
+int
+manhattan_distance (boat_t boat)
+{
+  return abs(boat.x) + abs(boat.y);
+}
+
+
 int
 main (int argc, char **argv)
 {
-  boat_t boat = { EAST, 0, 0 };
+  boat_t guessed_boat = { EAST, 0, 0 };
+
+  boat_t actual_boat = { EAST, 0, 0 };
+  waypoint_t waypoint = { 10, 1 };
 
   instruction_t instruction;
   while (read_instruction (&instruction))
-    follow (instruction, &boat);
+    {
+      follow_guessed_rules (instruction, &guessed_boat);
+      follow_actual_rules (instruction, &actual_boat, &waypoint);
+    }
 
-  printf ("Part 1: %d\n", abs(boat.x) + abs(boat.y));
+  printf ("Part 1: %d\n", manhattan_distance (guessed_boat));
+  printf ("Part 2: %d\n", manhattan_distance (actual_boat));
 
   return 0;
 }
