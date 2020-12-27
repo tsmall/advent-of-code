@@ -194,6 +194,44 @@ occupied_seats_near (point_t p, matrix_t m)
 }
 
 
+void
+check_line (point_t p, int dx, int dy, matrix_t m, int *count)
+{
+  char seat;
+  while (true)
+    {
+      p = dxdy (p, dx, dy);
+      if (!is_in_matrix (m, p))
+        return;
+
+      seat = m.seats[p.y][p.x];
+      if (seat == '#')
+        *count += 1;
+
+      if (seat != '.')
+        return;
+    }
+}
+
+
+int
+occupied_seats_visible (point_t p, matrix_t m)
+{
+  int count = 0;
+
+  check_line (p, -1, -1, m, &count);
+  check_line (p,  0, -1, m, &count);
+  check_line (p,  1, -1, m, &count);
+  check_line (p, -1,  0, m, &count);
+  check_line (p,  1,  0, m, &count);
+  check_line (p, -1,  1, m, &count);
+  check_line (p,  0,  1, m, &count);
+  check_line (p,  1,  1, m, &count);
+
+  return count;
+}
+
+
 int
 occupied_seat_count (matrix_t m)
 {
@@ -206,8 +244,10 @@ occupied_seat_count (matrix_t m)
 }
 
 
+typedef int (*seat_fn)(point_t, matrix_t);
+
 void
-apply_rules (matrix_t *curr_state, matrix_t *next_state)
+apply_rules (matrix_t *curr_state, matrix_t *next_state, seat_fn fn, int max_occupied)
 {
   char seat;
   int nearby_occupant_count;
@@ -215,12 +255,12 @@ apply_rules (matrix_t *curr_state, matrix_t *next_state)
     for (int col = 0; col < curr_state->col_count; col++)
       {
         seat = curr_state->seats[row][col];
-        nearby_occupant_count = occupied_seats_near ((point_t){col, row}, *curr_state);
+        nearby_occupant_count = fn ((point_t){col, row}, *curr_state);
 
         if (seat == 'L' && nearby_occupant_count == 0)
           next_state->seats[row][col] = '#';
 
-        if (seat == '#' && nearby_occupant_count >= 4)
+        if (seat == '#' && nearby_occupant_count >= max_occupied)
           next_state->seats[row][col] = 'L';
       }
 }
@@ -237,10 +277,10 @@ swap_state (matrix_t **curr_state, matrix_t **next_state)
 
 
 int
-main (int argc, char **argv)
+analyze (matrix_t original, seat_fn fn, int max_occupied)
 {
   matrix_t m1;
-  load_input (&m1);
+  clone_matrix (&m1, original);
 
   matrix_t m2;
   clone_matrix (&m2, m1);
@@ -250,8 +290,8 @@ main (int argc, char **argv)
 
   while (true)
     {
-      apply_rules (curr_state, next_state);
-      
+      apply_rules (curr_state, next_state, fn, max_occupied);
+
       if (matrix_are_equal (*curr_state, *next_state))
         break;
 
@@ -259,9 +299,38 @@ main (int argc, char **argv)
       copy_matrix (next_state, *curr_state);
     }
 
-  printf ("Part 1: %d\n", occupied_seat_count (*next_state));
+  int answer = occupied_seat_count (*next_state);
 
-  free_matrix (&m2);
   free_matrix (&m1);
+  free_matrix (&m2);
+
+  return answer;
+}
+
+
+int
+part_one (matrix_t original)
+{
+  return analyze (original, &occupied_seats_near, 4);
+}
+
+
+int
+part_two (matrix_t original)
+{
+  return analyze (original, &occupied_seats_visible, 5);
+}
+
+
+int
+main (int argc, char **argv)
+{
+  matrix_t original;
+  load_input (&original);
+
+  printf ("Part 1: %d\n", part_one (original));
+  printf ("Part 2: %d\n", part_two (original));
+
+  free_matrix (&original);
   return 0;
 }
