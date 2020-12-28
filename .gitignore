@@ -6,3 +6,6 @@ solution
 
 # Ignore any installed Clojure dependencies
 .cpcache
+
+# Ignore Visual Studio Code workspace files
+*.code-workspace
