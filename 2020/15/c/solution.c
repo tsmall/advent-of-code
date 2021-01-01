@@ -3,7 +3,7 @@
 
 
 #define NEVER -1
-#define MEMORY_CAPACITY 2000
+#define MEMORY_CAPACITY 100000000
 
 
 int turn = 1;
@@ -29,6 +29,8 @@ speak (int number)
 int
 recall_and_remember ()
 {
+  if (last_number >= MEMORY_CAPACITY)
+    fprintf (stderr, "ERROR: %d is too big\n", last_number);
   assert (last_number < MEMORY_CAPACITY);
 
   int previous_turn = memory[last_number];
@@ -81,9 +83,12 @@ main (int argc, char **argv)
 {
   wipe_memory ();
   read_starting_numbers ();
-  play_to_turn (2020);
 
+  play_to_turn (2020);
   printf ("Part 1: %d\n", last_number);
+
+  play_to_turn (30000000);
+  printf ("Part 2: %d\n", last_number);
 
   return 0;
 }
