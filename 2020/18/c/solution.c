@@ -52,6 +52,12 @@ pop (stack_t *stack)
   return stack->exprs[ --stack->i ];
 }
 
+int
+depth (stack_t *stack)
+{
+  return stack->i;
+}
+
 bool
 is_empty (stack_t *stack)
 {
@@ -69,57 +75,87 @@ apply (stack_t *stack, expr_t curr)
 int
 main (int argc, char **argv)
 {
-  stack_t stack = { 0 };
-  expr_t expr = zero;
-  long sum = 0;
+  stack_t p1_stack = { 0 };
+  stack_t p2_stack = { 0 };
+
+  int depths[10];
+  int depth_i = 0;
+
+  long p1_sum = 0;
+  long p2_sum = 0;
+
+  expr_t p1_expr = zero;
+  expr_t p2_expr = zero;
+
   char c;
-  int line_num = 1;
   while ((c = getchar ()) != EOF)
     {
       if (c == '\n')
         {
-          while (!is_empty (&stack))
-            expr = apply (&stack, expr);
+          while (!is_empty (&p1_stack))
+            p1_expr = apply (&p1_stack, p1_expr);
+          p1_sum += p1_expr.n;
+          p1_expr = zero;
 
-          printf ("Line %d = %ld\n", line_num++, expr.n);
-          sum += expr.n;
-          expr = zero;
+          while (!is_empty (&p2_stack))
+            p2_expr = apply (&p2_stack, p2_expr);
+          p2_sum += p2_expr.n;
+          p2_expr = zero;
+
           continue;
         }
 
       if (c == '(')
         {
-          push (&stack, expr);
-          expr = zero;
+          push (&p1_stack, p1_expr);
+          p1_expr = zero;
+
+          depths[ depth_i++ ] = depth (&p2_stack);
+          push (&p2_stack, p2_expr);
+          p2_expr = zero;
+
           continue;
         }
 
       if (c == ')')
         {
-          expr = apply (&stack, expr);
+          p1_expr = apply (&p1_stack, p1_expr);
+
+          depth_i -= 1;
+          while (depth (&p2_stack) > depths[depth_i])
+            p2_expr = apply (&p2_stack, p2_expr);
+
           continue;
         }
 
       if (c >= '0' && c <= '9')
         {
-          expr.n = eval (expr, c - '0');
+          p1_expr.n = eval (p1_expr, c - '0');
+          p2_expr.n = eval (p2_expr, c - '0');
           continue;
         }
 
       if (c == '+')
         {
-          expr.op = ADD;
+          p1_expr.op = ADD;
+          p2_expr.op = ADD;
           continue;
         }
 
       if (c == '*')
         {
-          expr.op = MUL;
+          p1_expr.op = MUL;
+
+          p2_expr.op = MUL;
+          push (&p2_stack, p2_expr);
+          p2_expr = zero;
+
           continue;
         }
     }
 
-  printf ("Part 1: %ld\n", sum);
+  printf ("Part 1: %ld\n", p1_sum);
+  printf ("Part 2: %ld\n", p2_sum);
 
   return 0;
 }
