@@ -9,7 +9,7 @@
 # See ../problem.txt for the full details.
 
 
-(var ic "Instruction Counter" 0)
+(var pc "Program Counter" 0)
 (var mem "Computer Memory" @[])
 
 
@@ -25,10 +25,10 @@
 (defn read-instruction
   "Read the current instruction from memory."
   []
-  {:opcode (get mem ic)
-   :inptr1 (get mem (+ ic 1))
-   :inptr2 (get mem (+ ic 2))
-   :outptr (get mem (+ ic 3))})
+  {:opcode (get mem pc)
+   :inptr1 (get mem (+ pc 1))
+   :inptr2 (get mem (+ pc 2))
+   :outptr (get mem (+ pc 3))})
 
 
 (defn halt?
@@ -58,26 +58,51 @@
     (set (mem outptr) (result instr))))
 
 
-(defn restore-state
-  "Restore mem state to just before computer caught fire."
+(defn load-program
+  "Load a program and set its inputs."
+  [program noun verb]
+  (set mem (array/slice program))
+  (set pc 0)
+  (set (mem 1) noun)
+  (set (mem 2) verb))
+
+
+(defn instructions
   []
-  (set (mem 1) 12)
-  (set (mem 2) 2))
-
-
-(def instructions
   "Generator containing all the program's instructions until it should halt."
   (generate [instr :iterate (read-instruction)
              :until (halt? instr)]
-            (+= ic 4)
+            (+= pc 4)
             instr))
 
 
-(set mem (parse-input))
+(defn run
+  "Run the program in mem until it halts. Returns the output."
+  [program noun verb]
+  (load-program program noun verb)
+  (loop [instr :in (instructions)]
+    (execute instr))
+  (mem 0))
 
-(restore-state)
 
-(loop [instr :generate instructions]
-  (execute instr))
+(defn run-until-output-matches
+  "Run the program with different input until the output matches expected."
+  [program expected]
+  (fiber/new
+   (fn []
+     (loop [noun :range-to [0 99]
+            verb :range-to [0 99]]
+       (when (= expected (run program noun verb))
+         (yield [noun verb]))))))
 
-(printf "Answer: %d\n" (mem 0))
+
+(def program (parse-input))
+
+(printf
+ "Part 1: %d"
+ (run program 12 2))
+
+(printf
+ "Part 2: %d"
+ (let [[noun verb] (resume (run-until-output-matches program 19690720))]
+   (+ (* noun 100) verb)))
