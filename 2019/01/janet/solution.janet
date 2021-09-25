@@ -22,8 +22,8 @@
       (+ extra (added-fuel extra)))))
 
 
-(def input
-  "A generator for each number given on stdin."
+(def masses
+  "Generates the masses of the modules, one at a time."
   (generate
    [line :iterate (file/read stdin :line)
     :let [trimmed (string/trim line)]]
@@ -33,12 +33,11 @@
 (var total-module-fuel 0)
 (var total-fuel-fuel 0)
 
-(loop [mass :generate input]
+(loop [mass :in masses]
   (let [fuel  (module-fuel mass)
         extra (added-fuel fuel)]
     (+= total-module-fuel fuel)
     (+= total-fuel-fuel extra)))
 
-(printf "Fuel for modules: %d\n" total-module-fuel)
-(printf "Fuel for fuel:    %d\n" total-fuel-fuel)
-(printf "Total fuel:       %d\n" (+ total-module-fuel total-fuel-fuel))
+(printf "Part 1: %d" total-module-fuel)
+(printf "Part 2: %d" (+ total-module-fuel total-fuel-fuel))
