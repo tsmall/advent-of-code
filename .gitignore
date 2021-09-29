@@ -9,3 +9,6 @@ solution
 
 # Ignore Visual Studio Code workspace files
 *.code-workspace
+
+# Ignore the Dylan build directories
+_build
