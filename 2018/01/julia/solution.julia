@@ -1,0 +1,27 @@
+frequency = 0
+changes = []
+seen = Set()
+
+for line in eachline("../input.txt")
+    change = parse(Int, line)
+    push!(changes, change)
+
+    global frequency += change
+    push!(seen, frequency)
+end
+
+println("Part 1: $frequency")
+
+duplicate = missing
+while ismissing(duplicate)
+    for change in changes
+        global frequency += change
+        if frequency ∈ seen
+            global duplicate = frequency
+            break
+        end
+        push!(seen, frequency)
+    end
+end
+
+println("Part 2: $duplicate")
