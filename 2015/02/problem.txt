@@ -22,6 +22,11 @@ For example:
 All numbers in the elves' list are in feet. How many total square feet of
 wrapping paper should they order?
 
+
+Your puzzle answer was 1588178.
+
+
+
 --- Part Two ---
 
 The elves are also running low on ribbon. Ribbon is all the same width, so they
@@ -45,3 +50,6 @@ For example:
      a total of 14 feet.
 
 How many total feet of ribbon should they order?
+
+
+Your puzzle answer was 3783758.
