@@ -1,0 +1,24 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    concurrent-ruby (1.1.9)
+    immutable-ruby (0.1.0)
+      concurrent-ruby (~> 1.1)
+      sorted_set (~> 1.0)
+    rbtree (0.4.4)
+    set (1.0.2)
+    sorted_set (1.0.3)
+      rbtree
+      set (~> 1.0)
+
+PLATFORMS
+  x86_64-darwin-17
+
+DEPENDENCIES
+  immutable-ruby
+
+RUBY VERSION
+   ruby 3.0.2p107
+
+BUNDLED WITH
+   2.2.22
