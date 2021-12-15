@@ -1,7 +1,7 @@
 # Advent of Code 2021
 # Day X: TODO
 
-module Day0X
+module DayX
   module_function
 
   def run
@@ -9,11 +9,13 @@ module Day0X
     puts "Part 2: #{part_two}"
   end
 
-  def part_one
+  def part_one(text=nil)
+    text ||= input
     0
   end
 
-  def part_two
+  def part_two(text=nil)
+    text ||= input
     0
   end
 
@@ -23,5 +25,5 @@ module Day0X
 end
 
 if $PROGRAM_NAME == __FILE__
-  Day0X.run
+  DayX.run
 end
