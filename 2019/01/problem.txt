@@ -48,6 +48,8 @@ then add together all the fuel values.
 What is the sum of the fuel requirements
 for all of the modules on your spacecraft?
 
+Your puzzle answer was 3267890.
+
 
 --- Part Two ---
 
@@ -96,3 +98,5 @@ for all of the modules on your spacecraft
 when also taking into account the mass of the added fuel?
 (Calculate the fuel requirements for each module separately,
 then add them all up at the end.)
+
+Your puzzle answer was 4898972.
