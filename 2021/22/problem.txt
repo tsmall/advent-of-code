@@ -228,3 +228,6 @@ After running the above reboot steps,
 Starting again with all cubes off,
 execute all reboot steps.
 Afterward, considering all cubes, how many cubes are on?
+
+
+Your puzzle answer was 1227298136842375.
