@@ -1,5 +1,6 @@
 # Ignore any compiled solutions.
 solution
+zig-cache/
 
 # Ignore any nrepl files
 .nrepl-port
