@@ -17,6 +17,8 @@ not larger than 25.
 
 In your puzzle input, how many of the listed triangles are possible?
 
+Your puzzle answer was 982.
+
 
 --- Part Two ---
 
@@ -36,3 +38,5 @@ digit would be part of the same triangle:
 
 In your puzzle input, and instead reading by columns, how many of the listed
 triangles are possible?
+
+Your puzzle answer was 1826.
