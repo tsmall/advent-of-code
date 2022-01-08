@@ -29,6 +29,8 @@ For example:
 How many steps are required to carry the data from the square identified in
 your puzzle input all the way to the access port?
 
+Your puzzle answer was 419.
+
 
 --- Part Two ---
 
@@ -62,3 +64,5 @@ squares would receive the following values:
 362  747  806--->   ...
 
 What is the first value written that is larger than your puzzle input?
+
+Your puzzle answer was 295229.
