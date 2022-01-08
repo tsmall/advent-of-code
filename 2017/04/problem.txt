@@ -15,6 +15,8 @@ For example:
 The system's full passphrase list is available as your puzzle input. How many
 passphrases are valid?
 
+Your puzzle answer was 477.
+
 
 --- Part Two ---
 
@@ -39,3 +41,5 @@ For example:
     form any other word.
 
 Under this new system policy, how many passphrases are valid?
+
+Your puzzle answer was 167.
