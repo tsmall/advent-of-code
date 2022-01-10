@@ -32,6 +32,8 @@ Of these box IDs, four of them contain a letter which appears exactly twice, and
 
 What is the checksum for your list of box IDs?
 
+(Answer: 7221)
+
 
 
 
@@ -54,3 +56,5 @@ wvxyz
 The IDs abcde and axcye are close, but they differ by two characters (the second and fourth). However, the IDs fghij and fguij differ by exactly one character, the third (h and u). Those must be the correct boxes.
 
 What letters are common between the two correct box IDs? (In the example above, this is found by removing the differing character from either ID, producing fgij.)
+
+(Answer: mkcdflathzwsvjxrevymbdpoq)
