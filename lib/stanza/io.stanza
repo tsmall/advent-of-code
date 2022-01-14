@@ -12,20 +12,27 @@ public defn get-char () -> Char|False :
     get-char(STANDARD-INPUT-STREAM)
 
 
+public defn each-line () -> Seq<String> :
+    repeat-while $ fn () :
+        match(get-line()) :
+            (_:False) : None()
+            (line:String) : One(line)
+
+
 public defn get-line () -> String|False :
-    var line:String = ""
-    val max-iterations = 100
+    var line = StringBuffer()
 
-    defn* loop (iterations:Int) :
-        if iterations > max-iterations :
-            fatal("Line is too long!")
-        val c = get-char()
-        if c != false and c != '\n' :
-            line = append(line, to-string(c))
-            loop(iterations + 1)
+    defn* loop () :
+        match(get-char()) :
+            (c:Char) :
+                if c != '\n' :
+                    add(line, c)
+                    loop()
+            (_:False) :
+                false
 
-    loop(1)
-    false when empty?(line) else line
+    loop()
+    false when empty?(line) else to-string(line)
 
 
 public defn get-lines () -> List<String> :
@@ -46,3 +53,17 @@ public defn get-number () -> Int|False :
     match(num) :
         (num:False) : false
         (num:Int) : (num * -1) when sign == '-' else num
+
+
+public defn skip (s:Seq<Char>, count:Int) -> False :
+    for _ in 0 to count do :
+        next(s)
+
+
+public defn next-int (s:Seq<Char>) -> Int :
+    var n:Int = 0
+    while digit?(peek(s)) :
+        val d = to-int(to-byte(next(s)) - to-byte('0'))
+        n = n * 10
+        n = n + d
+    n
