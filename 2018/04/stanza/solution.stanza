@@ -1,0 +1,106 @@
+defpackage solution :
+   import core
+   import collections
+   import io
+
+
+;; -----------------------------------------------------------------------------
+;; Main
+
+
+val [sleep-total, sleep-by-minute] = parse-input()
+
+val [guard-1, minute-1] = strategy-one()
+val [guard-2, minute-2] = strategy-two()
+
+println("Part 1: %_" % [guard-1 * minute-1])
+println("Part 2: %_" % [guard-2 * minute-2])
+
+
+;; -----------------------------------------------------------------------------
+;; Logic
+
+
+defn strategy-one () :
+   val guard = key $ maximum(sleep-total, {value(_) < value(_)})
+   val minutes = sleep-by-minute[guard]
+   val minute = (index-of{minutes, _} $ maximum(minutes)) as Int
+   [guard, minute]
+
+
+defn strategy-two () :
+   val max-minute = let :
+      val result = HashTable<Int,Int>()
+      for entry in sleep-by-minute do :
+         result[key(entry)] = maximum(value(entry))
+      result
+
+   val entry = maximum(max-minute, {value(_) < value(_)})
+   val guard = key(entry)
+
+   val minutes = sleep-by-minute[guard]
+   val minute = (index-of(minutes, value(entry))) as Int
+
+   [guard, minute]
+
+
+;; -----------------------------------------------------------------------------
+;; Input Parsing
+
+
+deftype Record
+defstruct NewGuard     <: Record : (guard:Int)
+defstruct SleepStarted <: Record : (minute:Int)
+defstruct SleepEnded   <: Record : (minute:Int)
+
+
+defn parse-input () :
+   val sleep-total = HashTable<Int, Int>(0)
+   val sleep-by-minute = HashTable<Int, Array<Int>>()
+
+   var current-guard:Int
+   var start:Int
+   var end:Int
+
+   defn record-total () :
+      val duration = end - start
+      sleep-total[current-guard] = sleep-total[current-guard] + duration
+
+   defn record-minutes () :
+      if not key?(sleep-by-minute, current-guard) :
+         sleep-by-minute[current-guard] = Array<Int>(60, 0)
+      val minutes = sleep-by-minute[current-guard]
+      for i in start through end do :
+         minutes[i] = minutes[i] + 1
+
+   for r in each-record() do :
+      match(r) :
+         (r:NewGuard) :
+            current-guard = guard(r)
+         (r:SleepStarted) :
+            start = minute(r)
+         (r:SleepEnded) :
+            end = minute(r)
+            record-total()
+            record-minutes()
+
+   [sleep-total, sleep-by-minute]
+
+
+defn each-record () -> Seq<Record> :
+   val input = to-array<String> $ each-line()
+   qsort!(input)
+   for line in input seq :
+      val s = to-seq(line)
+      skip(s, 15)  ; "[YYYY-MM-DD HH:"
+      val minute = next-int(s)
+      skip(s, 2)  ; "] "
+      switch {peek(s) == _} :
+         'G' :
+            skip(s, 7)  ; "Guard #"
+            val guard = next-int(s)
+            NewGuard(guard)
+         'f' :
+            SleepStarted(minute)
+         'w' :
+            SleepEnded(minute)
