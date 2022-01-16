@@ -1,0 +1,76 @@
+defpackage solution :
+   import core
+   import io
+
+
+;; -----------------------------------------------------------------------------
+;; Main
+
+
+val polymer = get-line() as String
+
+println("Part 1: %_" % [reacted-length(polymer, false)])
+println("Part 2: %_" % [shortest-possible(polymer)])
+
+
+;; -----------------------------------------------------------------------------
+;; Logic
+
+
+defn react? (a:Char, b:Char) -> True|False :
+   (a != b) and (lower-case(a) == lower-case(b))
+
+
+defn reacted-length (polymer:String, removing:Char|False) -> Int :
+   val removed = Array<True|False>(length(polymer), false)
+
+   defn remove-all (c:Char) :
+      for i in 0 to length(polymer) do :
+         if lower-case(polymer[i]) == c :
+            removed[i] = true
+
+   defn prev (i:Int) -> Int|False :
+      var p = i - 1
+      while (p > 0) and removed[p] :
+         p = p - 1
+      if (p >= 0) and not removed[p] : p
+
+   defn next (i:Int) -> Int :
+      var n = i + 1
+      while (n < length(polymer)) and removed[n] :
+         n = n + 1
+      if (n < length(polymer)) and not removed[n] :
+         n
+      else :
+         length(polymer)
+
+   if removing is Char :
+       remove-all(lower-case(removing as Char))
+
+   var i:Int = 0
+   var j:Int = i + 1
+   while j < length(polymer) :
+      if react?(polymer[i], polymer[j]) :
+         removed[i] = true
+         removed[j] = true
+         match(prev(i)) :
+            (p:Int) :
+               i = p
+               j = next(j)
+            (_:False) :
+               i = j
+               j = next(i)
+      else :
+         i = j
+         j = next(i)
+
+   length(polymer) - count({_}, removed)
+
+
+defn shortest-possible (polymer:String) -> Int :
+   var shortest = length(polymer)
+   for c in "abcdefghijklmnopqrstuvwxyz" do :
+      val len = reacted-length(polymer, c)
+      if len < shortest :
+         shortest = len
+   shortest
