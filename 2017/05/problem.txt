@@ -45,6 +45,8 @@ In this example, the exit is reached in 5 steps.
 
 How many steps does it take to reach the exit?
 
+Your puzzle answer was 359348.
+
 
 --- Part Two ---
 
@@ -55,3 +57,5 @@ Using this rule with the above example, the process now takes 10 steps, and the
 offset values after finding the exit are left as 2 3 2 3 -1.
 
 How many steps does it now take to reach the exit?
+
+Your puzzle answer was 27688760.
