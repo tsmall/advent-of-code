@@ -24,9 +24,11 @@ actor Main
       error
     end
 
-  be report(part1: String, part2: String) =>
-    _env.out.print("Part 1: " + part1)
-    _env.out.print("Part 2: " + part2)
+  be report_part_one(answer: String) =>
+    _env.out.print("Part 1: " + answer)
+
+  be report_part_two(answer: String) =>
+    _env.out.print("Part 2: " + answer)
 
   be report_error(message: String) =>
     _env.out.print("ERROR: " + message)
@@ -40,6 +42,7 @@ actor Main
 
 
 interface Reporter
-  be report(part1: String, part2: String)
+  be report_part_one(answer: String)
+  be report_part_two(answer: String)
   be report_error(message: String)
   be log(data: Array[Stringable] val)
