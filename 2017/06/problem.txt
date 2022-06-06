@@ -50,6 +50,8 @@ Given the initial block counts in your puzzle input, how many redistribution
 cycles must be completed before a configuration is produced that has been seen
 before?
 
+Your puzzle answer was 5042.
+
 
 --- Part Two ---
 
@@ -62,3 +64,5 @@ answer in that example would be 4.
 
 How many cycles are in the infinite loop that arises from the configuration in
 your puzzle input?
+
+Your puzzle answer was 1086.
