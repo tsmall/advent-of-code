@@ -1,0 +1,150 @@
+defpackage solution :
+   import core
+   import io
+
+
+;; -----------------------------------------------------------------------------
+;; Main
+
+
+val [grid, max-safe-distance] = parse-input()
+
+println("Part 1: %_" % [largest-finite-area(grid)])
+println("Part 2: %_" % [safe-region-area(grid, max-safe-distance)])
+
+
+;; -----------------------------------------------------------------------------
+;; Logic
+
+
+defn largest-finite-area (grid:Array<Point>) -> Int :
+   val all-areas = owned-areas(grid)
+
+   val finite-point-indexes =
+      for i in 0 to length(grid) filter :
+         val p = get(grid, i)
+         has-finite-area?(p, grid)
+
+   val finite-areas =
+      for i in finite-point-indexes seq :
+         get(all-areas, i)
+
+   maximum(finite-areas)
+
+
+defn safe-region-area (grid:Array<Point>, max-safe-distance:Int) -> Int :
+   var safe-point-count = 0
+   for p in every-point-in(grid) do :
+      var total-distance = 0
+      for input-point in grid do :
+         total-distance = total-distance + manhattan-distance(p, input-point)
+      if total-distance < max-safe-distance :
+         safe-point-count = safe-point-count + 1
+   safe-point-count
+
+
+defn has-finite-area? (p:Point, grid:Array<Point>) -> True|False :
+   not is-on-border?(p, grid)
+
+
+defn is-on-border? (p:Point, grid:Array<Point>) -> True|False :
+   not (found-smaller-x and found-smaller-y and found-larger-x and found-larger-y)
+   where :
+      var found-smaller-x = false
+      var found-smaller-y = false
+      var found-larger-x = false
+      var found-larger-y = false
+      for other in grid do :
+         if x(other) < x(p) : found-smaller-x = true
+         if y(other) < y(p) : found-smaller-y = true
+         if x(other) > x(p) : found-larger-x = true
+         if y(other) > y(p) : found-larger-y = true
+
+
+defn owned-areas (grid:Array<Point>) -> Array<Int> :
+
+   defn find-sole-owner-of (p:Point) -> Int :
+      var shortest-distance = INT-MAX
+      var closest-index = 0
+      var found-more-than-one = false
+      for i in 0 to length(grid) do :
+         val other = get(grid, i)
+         val distance = manhattan-distance(p, other)
+         if distance < shortest-distance :
+            shortest-distance = distance
+            closest-index = i
+            found-more-than-one = false
+         else if distance == shortest-distance :
+            found-more-than-one = true
+      if found-more-than-one :
+         fail()
+      else:
+         closest-index
+
+   val areas = Array<Int>(length(grid), 0)
+   for p in every-point-in(grid) do :
+      attempt :
+         val owner-index = find-sole-owner-of(p)
+         increment(areas, owner-index)
+
+   areas
+
+
+defn every-point-in (grid:Array<Point>) -> Seq<Point> :
+   val [min-x, max-x] = min-max $ map<Int>(x, grid)
+   val [min-y, max-y] = min-max $ map<Int>(y, grid)
+   generate<Point> :
+      for x in min-x through max-x do :
+         for y in min-y through max-y do :
+            yield $ Point(x, y)
+
+
+defn increment (ns:IndexedCollection<Int>, i:Int) :
+   set(ns, i, get(ns, i) + 1)
+
+
+defn min-max<?T> (xs:Seqable<?T&Comparable>) -> [T, T] :
+   val s = to-seq(xs)
+   var min = next(s)
+   var max = min
+   for x in s do :
+      if x < min : min = x
+      if x > max : max = x
+   [min, max]
+
+
+;; -----------------------------------------------------------------------------
+;; Point
+
+
+defstruct Point :
+   x: Int
+   y: Int
+
+
+defn manhattan-distance (p1:Point, p2:Point) -> Int :
+   val dx = abs(x(p1) - x(p2))
+   val dy = abs(y(p1) - y(p2))
+   dx + dy
+
+
+;; -----------------------------------------------------------------------------
+;; Parsing
+
+
+defn parse-input () -> [Array<Point>, Int] :
+   [parse-stdin(), parse-args()]
+
+
+defn parse-stdin () -> Array<Point> :
+   to-array<Point> $ for line in each-line() seq :
+      val chars = to-seq(line)
+      val x = next-int(chars)
+      skip(chars, 2)  ; skip ", "
+      val y = next-int(chars)
+      Point(x, y)
+
+
+defn parse-args () -> Int :
+   val max-safe-distance = to-int $ get(command-line-arguments(), 1)
+   max-safe-distance as Int
