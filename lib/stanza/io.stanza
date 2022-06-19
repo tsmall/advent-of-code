@@ -62,7 +62,7 @@ public defn skip (s:Seq<Char>, count:Int) -> False :
 
 public defn next-int (s:Seq<Char>) -> Int :
     var n:Int = 0
-    while digit?(peek(s)) :
+    while not empty?(s) and digit?(peek(s)) :
         val d = to-int(to-byte(next(s)) - to-byte('0'))
         n = n * 10
         n = n + d
