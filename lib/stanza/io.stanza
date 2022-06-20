@@ -7,6 +7,9 @@ defpackage io :
     import collections
 
 
+;; -----------------------------------------------------------------------------
+;; Standard Input
+
 
 public defn get-char () -> Char|False :
     get-char(STANDARD-INPUT-STREAM)
@@ -53,6 +56,22 @@ public defn get-number () -> Int|False :
     match(num) :
         (num:False) : false
         (num:Int) : (num * -1) when sign == '-' else num
+
+
+public defn next-int () -> Maybe<Int> :
+    var n = 0
+    var c = get-char()
+    var read-something = false
+    while (not c is False) and digit?(c as Char):
+        read-something = true
+        val d = to-int(to-byte(c as Char) - to-byte('0'))
+        n = (n * 10) + d
+        c = get-char()
+    One(n) when read-something else None()
+
+
+;; -----------------------------------------------------------------------------
+;; Seq-based I/O
 
 
 public defn skip (s:Seq<Char>, count:Int) -> False :
