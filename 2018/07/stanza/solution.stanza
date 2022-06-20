@@ -1,0 +1,269 @@
+defpackage solution :
+   import collections
+   import core
+   import io
+
+
+;; -----------------------------------------------------------------------------
+;; Main
+
+
+let :
+   val input = parse-input()
+   val worker-pool = WorkerPool(worker-count(input), base-work-time(input))
+
+   val solo-steps = step-order(clone $ instructions(input))
+   val group-time = completion-time(worker-pool, clone $ instructions(input))
+
+   println("Part 1: %_" % [solo-steps])
+   println("Part 2: %_" % [group-time])
+
+
+;; -----------------------------------------------------------------------------
+;; Parsing
+
+
+defstruct Input :
+   worker-count:Int
+   base-work-time:Int
+   instructions:Instructions
+
+
+defn parse-input () -> Input :
+   val instructions = parse-stdin()
+   val [worker-count, base-work-time] = parse-args()
+   Input(worker-count, base-work-time, instructions)
+
+
+defn parse-stdin () -> Instructions :
+   val instructions = Instructions()
+   for line in each-line() do :
+      val name = get(line, 36)
+      val prereq = get(line, 5)
+      add-step(instructions, name, prereq)
+   instructions
+
+
+defn parse-args () -> [Int,Int] :
+   val args = command-line-arguments()
+   val worker-count = to-int $ get(args, 1)
+   val base-work-time = to-int $ get(args, 2)
+   [worker-count as Int, base-work-time as Int]
+
+
+;; -----------------------------------------------------------------------------
+;; Instructions
+
+
+defstruct Instructions <: Lengthable :
+   steps:Vector<Step>
+   reserved:Vector<Char>
+
+
+defn Instructions () -> Instructions :
+   Instructions(Vector<Step>(), Vector<Char>())
+
+
+defn clone (instructions:Instructions) -> Instructions :
+   val cloned-steps =
+      for step in steps(instructions) map<Step> :
+         Step(name(step), clone(prereqs(step)))
+
+   val cloned-reserved = clone(reserved(instructions))
+
+   Instructions(cloned-steps, cloned-reserved)
+
+
+defn clone<?T> (v:Vector<?T>) -> Vector<T> :
+   for c in v map<T> : c
+
+
+defn step-order (instructions:Instructions) -> String :
+   val result = StringBuffer(length(instructions))
+   defn* loop () :
+      match(next-available-step(instructions)) :
+         (step:Char) :
+            add(result, step)
+            perform-step(instructions, step)
+            loop()
+         (_:False) :
+            to-string(result)
+   loop()
+
+
+defn empty? (instructions:Instructions) -> True|False :
+   empty? $ available-steps(instructions)
+
+
+defmethod length (instructions:Instructions) -> Int :
+   length $ steps(instructions)
+
+
+defn get-step (instructions:Instructions, step-name:Char) -> Step|False :
+   label<Step|False> return :
+      for step in steps(instructions) do :
+         if name(step) == step-name :
+            return(step)
+      false
+
+
+defn add-step (instructions:Instructions, name:Char, prereq:Char) :
+   ensure-step-exists(instructions, name)
+   ensure-step-exists(instructions, prereq)
+   add-prereq{_, prereq} $ get-step(instructions, name) as Step
+
+
+defn ensure-step-exists (instructions:Instructions, name:Char) :
+   if get-step(instructions, name) is False :
+      val step = Step(name)
+      add(steps(instructions), step)
+
+
+defn perform-step (instructions:Instructions, step-name:Char) :
+   for step in steps(instructions) remove-when :
+      remove-prereq(step, step-name)
+      name(step) == step-name
+   for reserved-step in reserved(instructions) remove-when :
+      reserved-step == step-name
+
+
+defn available-steps (instructions:Instructions) -> Seq<Char> :
+   for step in steps(instructions) seq? :
+      if available?(step) and not reserved?(instructions, step) :
+         One(name(step))
+      else :
+         None()
+
+
+defn reserve (instructions:Instructions, step-name:Char) -> False :
+   add(reserved(instructions), step-name)
+
+
+defn reserved? (instructions:Instructions, step:Step) -> True|False :
+   for step-name in reserved(instructions) any? :
+      step-name == name(step)
+
+
+defn next-available-step (instructions:Instructions) -> Char|False :
+   val steps = available-steps(instructions)
+   false when empty?(steps) else minimum(steps)
+   
+
+;; -----------------------------------------------------------------------------
+;; Step
+
+
+defstruct Step :
+   name:Char
+   prereqs:Vector<Char>
+
+
+defn Step (name:Char) -> Step :
+   val prereqs = Vector<Char>()
+   Step(name, prereqs)
+
+
+defn add-prereq (step:Step, prereq:Char) :
+   if not contains?(prereqs(step), prereq) :
+      add(prereqs(step), prereq)
+
+
+defn remove-prereq (step:Step, prereq:Char) :
+   remove-item(prereqs(step), prereq)
+
+
+defn available? (step:Step) -> True|False :
+   empty? $ prereqs(step)
+
+
+;; -----------------------------------------------------------------------------
+;; Workers
+
+
+defstruct WorkerPool :
+   workers:Vector<Worker>
+
+
+defn WorkerPool (worker-count:Int, base-work-time:Int) -> WorkerPool :
+   val workers = Vector<Worker>(worker-count)
+   for i in 0 to worker-count do :
+      add(workers, Worker(i + 1, base-work-time))
+   WorkerPool(workers)
+
+
+defn completion-time (pool:WorkerPool, instructions:Instructions) -> Int :
+   var ticks = 0
+
+   defn tick-all () -> False :
+      ticks = ticks + 1
+      for worker in workers(pool) do :
+         match(tick(worker)) :
+            (finished-step:Char) :
+               perform-step(instructions, finished-step)
+            (_:False) :
+               false
+
+   defn assign-instructions () :
+      var worker = next-available-worker(pool)
+      while worker is Worker :
+         match(next-available-step(instructions)) :
+            (step-name:Char) :
+               start-step(worker as Worker, step-name)
+               reserve(instructions, step-name)
+               worker = next-available-worker(pool)
+            (_:False) :
+               fail()
+
+   defn* loop () :
+      if empty?(instructions) and idle?(pool) :
+         ticks
+      else :
+         attempt : assign-instructions()
+         tick-all()
+         loop()
+
+   loop()
+
+
+defn any-available? (pool:WorkerPool) -> True|False :
+   any?(available?, workers(pool))
+
+
+defn idle? (pool:WorkerPool) -> True|False :
+   all?(available?, workers(pool))
+
+
+defn next-available-worker (pool:WorkerPool) -> Worker|False :
+   find(available?, workers(pool))
+
+
+deftype Worker
+
+defmulti available? (w:Worker) -> True|False
+defmulti start-step (w:Worker, step:Char)
+defmulti tick (w:Worker) -> Char|False
+
+defn Worker (id:Int, base-work-time:Int) -> Worker :
+   var current-step:Maybe<Char> = None()
+   var spent-time = 0
+   var goal-time = 0
+
+   new Worker :
+
+      defmethod available? (this) :
+         empty?(current-step)
+
+      defmethod start-step (this, step:Char) :
+         val step-time = to-int(step) - to-int('A') + 1
+         current-step = One(step)
+         goal-time = base-work-time + step-time
+         spent-time = 0
+
+      defmethod tick (this) :
+         var finished-step:Char|False = false
+         if not empty?(current-step) :
+            spent-time = spent-time + 1
+            if spent-time == goal-time :
+               finished-step = value!(current-step)
+               current-step = None()
+         finished-step
