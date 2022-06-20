@@ -1,0 +1,92 @@
+defpackage solution :
+   import collections
+   import core
+   import io
+
+
+;; -----------------------------------------------------------------------------
+;; Main
+
+
+let :
+   val numbers = parse-input()
+   val node = Node(numbers)
+
+   println("Part 1: %_" % [metadata-sum(node)])
+   println("Part 2: %_" % [value(node)])
+
+
+;; -----------------------------------------------------------------------------
+;; Input
+
+
+defn parse-input () -> Seq<Int> :
+   repeat-while(next-int)
+
+
+;; -----------------------------------------------------------------------------
+;; Node
+
+
+defstruct Node :
+   children:IndexedCollection<Node>
+   metadata:IndexedCollection<Int>
+
+
+defn Node (numbers:Seq<Int>) -> Node :
+   val child-count = next(numbers)
+   val metadata-count = next(numbers)
+   val children = parse-children(numbers, child-count)
+   val metadata = parse-metadata(numbers, metadata-count)
+   Node(children, metadata)
+
+
+defn metadata-sum (node:Node) -> Int :
+   var sum = sum(metadata(node))
+   for child in children(node) do :
+      sum = sum + metadata-sum(child)
+   sum
+
+
+defn value (node:Node) -> Int :
+   if not has-children?(node) :
+      sum(metadata(node))
+   else :
+      sum(child-values(node))
+
+
+defn has-children? (node:Node) -> True|False :
+   not empty? $ children(node)
+
+
+defn child-values (node:Node) -> Seq<Int> :
+   for child in indexed-children(node) seq :
+      value(child)
+
+
+defn indexed-children (node:Node) -> Seq<Node> :
+   for one-based-index in metadata(node) seq? :
+      get-child(node, one-based-index)
+
+
+defn get-child (node:Node, one-based-index:Int) -> Maybe<Node> :
+   val zero-based-index = one-based-index - 1
+   if has-child-at-index?(node, zero-based-index) :
+      One $ get(children(node), zero-based-index)
+   else :
+      None()
+
+
+defn has-child-at-index? (node:Node, zero-based-index:Int) -> True|False :
+   (zero-based-index >= 0) and (zero-based-index < length(children(node)))
+
+
+defn parse-children (numbers:Seq<Int>, count:Int) -> IndexedCollection<Node> :
+   val children = Vector<Node>()
+   for i in 0 to count do :
+      add(children, Node(numbers))
+   children
+
+
+defn parse-metadata (numbers:Seq<Int>, count:Int) -> IndexedCollection<Int> :
+   to-array<Int> $ take-n(count, numbers)
