@@ -79,6 +79,11 @@ public defn skip (s:Seq<Char>, count:Int) -> False :
         next(s)
 
 
+public defn skip-while<?T> (f:T -> True|False, xs:Seq<?T>) -> False :
+    while f(peek(xs)) :
+       next(xs)
+
+
 public defn next-int (s:Seq<Char>) -> Int :
     var n:Int = 0
     while not empty?(s) and digit?(peek(s)) :
