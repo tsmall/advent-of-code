@@ -1,0 +1,182 @@
+defpackage solution :
+   import core
+   import io
+
+
+;; -----------------------------------------------------------------------------
+;; Main
+
+
+let :
+   val [player-count, last-marble] = parse-input()
+
+   let :
+      val game = Game(player-count, last-marble)
+      val winning-score = play(game)
+      println("Part 1: %_" % [winning-score])
+
+   let :
+      val game = Game(player-count, last-marble * 100)
+      val winning-score = play(game)
+      println("Part 2: %_" % [winning-score])
+
+
+;; -----------------------------------------------------------------------------
+;; Input
+
+
+defn parse-input () -> [Int, Int] :
+   parse-line $ get-line() as String
+
+
+defn parse-line (line:String) -> [Int, Int] :
+   val s = to-seq(line)
+   val player-count = next-int(s)
+   for char in s skip-while :
+      not digit?(char)
+   val last-marble = next-int(s)
+   [player-count, last-marble]
+
+
+;; -----------------------------------------------------------------------------
+;; Game
+
+
+deftype Game
+
+defmulti play (g:Game) -> Long
+
+
+defn Game (player-count:Int, last-marble:Int) -> Game :
+   val scores = Array<Long>(player-count, 0L)
+   val circle = Circle(0)
+   var player = 0
+
+   defn play-marble (marble:Int) -> False:
+      if special?(marble) :
+         take-marbles(marble)
+      else :
+         place-marble(marble)
+
+   defn special? (marble:Int) -> True|False :
+      (marble % 23) == 0
+
+   defn take-marbles (marble:Int) -> False :
+      move-counterclockwise(circle, 7)
+      val removed-marble = remove(circle)
+      scores[player] = scores[player] + to-long(marble) + to-long(removed-marble)
+
+   defn place-marble (marble:Int) -> False :
+      move-clockwise(circle, 2)
+      insert(circle, marble)
+
+   defn change-player () -> False :
+      player = (player + 1) % player-count
+
+   defn winning-score () -> Long :
+      maximum(scores)
+
+   new Game :
+
+      defmethod play (this) :
+         for marble in 1 through last-marble do :
+            play-marble(marble)
+            change-player()
+         winning-score()
+
+
+;; -----------------------------------------------------------------------------
+;; Circle
+
+
+deftype Circle
+
+defmulti move-clockwise (r:Circle, steps:Int) -> False
+defmulti move-counterclockwise (r:Circle, steps:Int) -> False
+defmulti insert (r:Circle, value:Int) -> False
+defmulti remove (r:Circle) -> Int
+
+
+defn Circle (initial-value:Int) -> Circle :
+   val initial-node:Node = Node(initial-value)
+   var current-node:Node = initial-node
+
+   new Circle :
+
+      defmethod move-clockwise (this, steps:Int) :
+         for _ in 0 to steps do :
+            current-node = next(current-node)
+
+      defmethod move-counterclockwise (this, steps:Int) :
+         for _ in 0 to steps do :
+            current-node = previous(current-node)
+
+      defmethod insert (this, value:Int) :
+         current-node = insert(current-node, value)
+
+      defmethod remove (this) :
+         val removed-node = current-node
+         current-node = next(current-node)
+         remove(removed-node)
+         value(removed-node)
+
+
+;; -----------------------------------------------------------------------------
+;; Node
+
+
+deftype Node
+
+defmulti value (n:Node) -> Int
+defmulti previous (n:Node) -> Node
+defmulti next (n:Node) -> Node
+defmulti set-previous (n:Node, previous:Node) -> False
+defmulti set-next (n:Node, next:Node) -> False
+defmulti insert (n:Node, value:Int) -> Node
+defmulti remove (n:Node) -> False
+
+
+defn Node (value:Int) -> Node :
+   Node(value, false, false)
+
+
+defn Node (value:Int, p:Node|False, n:Node|False) -> Node :
+   var prev-node = p
+   var next-node = n
+
+   val this = new Node :
+
+      defmethod value (this) :
+         value
+
+      defmethod previous (this) :
+         prev-node as Node
+
+      defmethod next (this) :
+         next-node as Node
+
+      defmethod set-previous (this, previous:Node) :
+         prev-node = previous
+
+      defmethod set-next (this, next:Node) :
+         next-node = next
+
+      defmethod insert (this, prev-value:Int) :
+         val new-node = Node(prev-value, previous(this), this)
+         set-next(previous(this), new-node)
+         prev-node = new-node
+         new-node
+
+      defmethod remove (this) :
+         set-next(previous(this), next(this))
+         set-previous(next(this), previous(this))
+         prev-node = false
+         next-node = false
+
+   if prev-node is False :
+      prev-node = this
+
+   if next-node is False :
+      next-node = this
+
+   this
