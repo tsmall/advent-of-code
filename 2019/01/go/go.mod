@@ -1,3 +1,3 @@
-module github.com/tsmall/advent-of-code
+module day1
 
 go 1.18
