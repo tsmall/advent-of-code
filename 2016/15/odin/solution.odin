@@ -103,7 +103,7 @@ parse_line :: proc(line: string) -> (positions: u8, position: u8) {
     n := 0
     s := line[skip_1:]
     n, positions = read_u8(s)
-    s = line[skip_2 + n:]
+    s = s[skip_2 + n:]
     n, position = read_u8(s)
 
     return
