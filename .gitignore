@@ -1,5 +1,6 @@
 # Ignore any compiled solutions.
 solution
+solution.bin
 zig-cache/
 
 # Ignore any nrepl files
