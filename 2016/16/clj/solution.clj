@@ -1,17 +1,18 @@
 (ns aoc.y2016.day16
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str])
+  (:import [clojure.lang IPersistentVector]))
 
 (def flipped
   {\0 \1, \1 \0})
 
 (defn dragon-curve-step
   [data]
-  (loop [res (conj! data \0)
-         i   (dec (count data))]
+  (loop [i   (dec (count data))
+         res (conj! data \0)]
     (if (< i 0)
       res
-      (recur (conj! res (flipped (nth data i)))
-             (dec i)))))
+      (recur (dec i)
+             (conj! res (flipped (nth data i)))))))
 
 (defn dragon-curve
   [start-data desired-size]
@@ -21,16 +22,20 @@
       (recur (dragon-curve-step data)))))
 
 (defn checksum-pair
-  [[x y]]
-  (if (= x y)
-    1
-    0))
+  [^IPersistentVector pair]
+  (let [x (.nth pair 0)
+        y (.nth pair 1)]
+   (if (.equals x y)
+     1
+     0)))
 
 (defn checksum-step
   [data]
-  (->> data
-       (partition 2)
-       (map checksum-pair)))
+  (into []
+        (comp
+         (partition-all 2)
+         (map checksum-pair))
+        data))
 
 (defn checksum
   [data]
