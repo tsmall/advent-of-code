@@ -1,19 +1,23 @@
 (ns aoc.y2016.day16
   (:require [clojure.string :as str]))
 
+(def flipped
+  {\0 \1, \1 \0})
+
 (defn dragon-curve-step
   [data]
-  (let [a data
-        b (->> data
-               reverse
-               (map {\0 \1, \1, \0}))]
-    (concat a [\0] b)))
+  (loop [res (conj! data \0)
+         i   (dec (count data))]
+    (if (< i 0)
+      res
+      (recur (conj! res (flipped (nth data i)))
+             (dec i)))))
 
 (defn dragon-curve
   [start-data desired-size]
-  (loop [data start-data]
+  (loop [data (transient start-data)]
     (if (>= (count data) desired-size)
-      (take desired-size data)
+      (take desired-size (persistent! data))
       (recur (dragon-curve-step data)))))
 
 (defn checksum-pair
@@ -42,7 +46,7 @@
       (checksum)))
 
 (def input
-  "01000100010010111")
+  (vec "01000100010010111"))
 
 (defn part1
   []
