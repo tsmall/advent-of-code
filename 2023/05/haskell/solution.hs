@@ -14,8 +14,8 @@ import Text.Parsec.String (Parser)
 
 main :: IO ()
 main = do
-  -- inputText <- load "../example.txt"
-  inputText <- load "../input.txt"
+  -- inputText <- load "../../../../advent-of-code-problems/2023/05/example.txt"
+  inputText <- load "../../../../advent-of-code-problems/2023/05/input.txt"
   case parseInput inputText of
     Left error ->
       print error

@@ -10,7 +10,7 @@ import System.IO (IOMode(..), openFile, hGetContents)
 
 main :: IO ()
 main = do
-  input <- load "../input.txt"
+  input <- load "../../../../advent-of-code-problems/2023/03/input.txt"
   let grid = parseGrid input
   let numbers = parseNumbers grid
   putStrLn $ "Part 1: " ++ (show $ part1 grid numbers)

@@ -13,7 +13,7 @@ import Text.Parsec.String (Parser)
 
 main :: IO ()
 main = do
-  input <- load "../input.txt"
+  input <- load "../../../../advent-of-code-problems/2023/04/input.txt"
   case parseInput input of
     Left error ->
       print error

@@ -5,7 +5,7 @@ import System.IO (IOMode(..), openFile, hGetContents)
 
 main :: IO ()
 main = do
-  input <- load "../input.txt"
+  input <- load "../../../../advent-of-code-problems/2023/01/input.txt"
   let inputLines = lines input
   putStrLn $ "Part 1: " ++ (show $ part1 inputLines)
   putStrLn $ "Part 2: " ++ (show $ part2 inputLines)
