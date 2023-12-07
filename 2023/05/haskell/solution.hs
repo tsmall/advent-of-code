@@ -1,5 +1,3 @@
-import qualified Data.Set as Set
-
 import Data.Maybe (fromMaybe, isJust)
 import Data.List (find)
 import System.IO (IOMode(..), openFile, hGetContents)
@@ -14,7 +12,6 @@ import Text.Parsec.String (Parser)
 
 main :: IO ()
 main = do
-  -- inputText <- load "../../../../advent-of-code-problems/2023/05/example.txt"
   inputText <- load "../../../../advent-of-code-problems/2023/05/input.txt"
   case parseInput inputText of
     Left error ->
@@ -22,8 +19,7 @@ main = do
 
     Right input -> do
       putStrLn $ "Part 1: " ++ (show $ part1 input)
-      -- putStrLn $ "Part 2: " ++ (show $ part2 input)
-      putStrLn $ "Part 2: TODO"
+      putStrLn $ "Part 2: " ++ (show $ part2 input)
 
 
 load :: String -> IO String
@@ -48,7 +44,7 @@ part2 (Input seeds maps) =
       filter hasSeed [1..]
 
     hasSeed location =
-      Set.member (seedFromLocation location) actualSeeds
+      isInAnyRange seedRanges (seedFromLocation location)
 
     seedFromLocation location =
       chainLookup reversedMaps location
@@ -56,13 +52,13 @@ part2 (Input seeds maps) =
     reversedMaps =
       reverseMaps maps
 
-    actualSeeds =
-      Set.fromList $ seedRanges [] seeds
+    seedRanges =
+      buildRanges [] seeds
 
-    seedRanges result [] =
+    buildRanges result [] =
       result
-    seedRanges result (start:len:rest) =
-      seedRanges (result ++ [start .. start + len - 1]) rest
+    buildRanges result (start:len:rest) =
+      buildRanges (result ++ [Range start len]) rest
 
 
 -- -----------------------------------------------------------------------------
@@ -90,8 +86,25 @@ data MapEntry = MapEntry
   deriving (Show)
 
 
+data Range = Range
+  { rangeStart :: Int
+  , rangeLen :: Int
+  }
+  deriving (Show)
+
+
 -- -----------------------------------------------------------------------------
 -- Helpers
+
+
+isInAnyRange :: [Range] -> Int -> Bool
+isInAnyRange ranges n =
+  any (flip isInRange $ n) ranges
+
+
+isInRange :: Range -> Int -> Bool
+isInRange (Range start len) n =
+  (n >= start) && (n <= start + len - 1)
 
 
 reverseMaps :: [Map] -> [Map]
