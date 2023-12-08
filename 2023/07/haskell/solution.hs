@@ -8,10 +8,9 @@ import System.IO (IOMode(..), openFile, hGetContents)
 
 main :: IO ()
 main = do
-  -- input <- load "../../../../advent-of-code-problems/2023/07/example.txt"
   input <- load "../../../../advent-of-code-problems/2023/07/input.txt"
   putStrLn $ "Part 1: " ++ (show $ part1 input)
-  putStrLn $ "Part 2: " ++ "TODO" -- (show $ part2 input)
+  putStrLn $ "Part 2: " ++ (show $ part2 input)
 
 
 load :: String -> IO String
@@ -35,6 +34,23 @@ part1 input =
 
     hands =
       parseInput input
+
+
+part2 :: String -> Int
+part2 input =
+  sum $ map (\(rank, bid) -> rank * bid) rankedBids
+  where
+    rankedBids =
+      zip [1..] $ map (handBid . scoredHandHand) sortedHands
+
+    sortedHands =
+      sortHands scoredHands
+
+    scoredHands =
+      map score hands
+
+    hands =
+      map makeJacksJokers $ parseInput input
 
 
 -- -----------------------------------------------------------------------------
@@ -67,7 +83,8 @@ data HandType
 
 
 data Card
-  = Two
+  = Joker
+  | Two
   | Three
   | Four
   | Five
@@ -89,20 +106,64 @@ data Card
 
 score :: Hand -> ScoredHand
 score hand =
-  ScoredHand hand handType
+  ScoredHand hand bestHandType
   where
-    handType =
-      case countOccurrences cards of
-        [5] -> FiveOfAKind
-        [1,4] -> FourOfAKind
-        [2,3] -> FullHouse
-        [1,1,3] -> ThreeOfAKind
-        [1,2,2] -> TwoPair
-        [1,1,1,2] -> OnePair
-        [1,1,1,1,1] -> HighCard
+    bestHandType =
+      maximum $ map handType cardPermutations
+
+    cardPermutations =
+      if any (== Joker) cards
+      then
+        replaceAllJokers cards
+      else
+        [cards]
 
     cards =
       handCards hand
+
+
+replaceAllJokers :: [Card] -> [[Card]]
+replaceAllJokers cards =
+  map (replaceJokers cards) [Two .. Ace]
+
+
+replaceJokers :: [Card] -> Card -> [Card]
+replaceJokers cards replacement =
+  map swapJoker cards
+  where
+    swapJoker card =
+      if card == Joker
+      then
+        replacement
+      else
+        card
+
+
+makeJacksJokers :: Hand -> Hand
+makeJacksJokers hand =
+  hand { handCards = newCards }
+  where
+    newCards =
+      map swapJoker $ handCards hand
+
+    swapJoker card =
+      if card == Jack
+      then
+        Joker
+      else
+        card
+
+
+handType :: [Card] -> HandType
+handType cards =
+  case countOccurrences cards of
+    [5] -> FiveOfAKind
+    [1,4] -> FourOfAKind
+    [2,3] -> FullHouse
+    [1,1,3] -> ThreeOfAKind
+    [1,2,2] -> TwoPair
+    [1,1,1,2] -> OnePair
+    [1,1,1,1,1] -> HighCard
 
 
 countOccurrences :: (Eq a, Ord a) => [a] -> [Int]
