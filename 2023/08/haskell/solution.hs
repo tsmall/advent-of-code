@@ -1,6 +1,7 @@
 import qualified Data.Map.Strict as Map
 
 import Data.Char (isAlpha, isSpace)
+import Data.List (foldl1, isSuffixOf)
 import Data.Map.Strict (Map, (!))
 import System.IO (IOMode(..), openFile, hGetContents)
 
@@ -11,10 +12,10 @@ import System.IO (IOMode(..), openFile, hGetContents)
 
 main :: IO ()
 main = do
-  -- input <- load "example2.txt"
   input <- load "input.txt"
-  putStrLn $ "Part 1: " ++ (show $ part1 input)
-  putStrLn $ "Part 2: " ++ "TODO" -- (show $ part2 input)
+  let (network, instructions) = parseInput input
+  putStrLn $ "Part 1: " ++ (show $ part1 network instructions)
+  putStrLn $ "Part 2: " ++ (show $ part2 network instructions)
 
 
 load :: String -> IO String
@@ -25,12 +26,23 @@ load fileName =
       "../../../../advent-of-code-problems/2023/08/" ++ fileName
 
 
-part1 :: String -> Int
-part1 input =
-  navigate network instructions
+part1 :: Network -> [Instruction] -> Int
+part1 network instructions =
+  navigate "AAA" network instructions (== "ZZZ")
+
+
+part2 :: Network -> [Instruction] -> Int
+part2 network instructions =
+  foldl1 lcm stepsPerNode
   where
-    (network, instructions) =
-      parseInput input
+    stepsPerNode =
+      map doNav startNodes
+
+    doNav node =
+      navigate node network instructions ("Z" `isSuffixOf`)
+
+    startNodes =
+      filter ("A" `isSuffixOf`) $ Map.keys network
 
 
 -- -----------------------------------------------------------------------------
@@ -51,16 +63,16 @@ data Instruction
 -- Helpers
 
 
-navigate :: Network -> [Instruction] -> Int
-navigate network instructions =
-  loop 1 "AAA" (cycle instructions)
+navigate :: String -> Network -> [Instruction] -> (String -> Bool) -> Int
+navigate startNode network instructions isEnd =
+  loop 1 startNode (cycle instructions)
   where
     loop count currentNode (instruction:rest) =
       let
         options = network ! currentNode
         nextNode = choose instruction options
       in
-        if nextNode == "ZZZ"
+        if isEnd nextNode
         then
           count
         else
@@ -95,10 +107,7 @@ parseInput input =
 
 parseInstructions :: String -> [Instruction]
 parseInstructions line =
-  foldl readInstruction [] line
-  where
-    readInstruction instructions char =
-      instructions ++ [parseInstruction char]
+  map parseInstruction line
 
 
 parseInstruction :: Char -> Instruction
