@@ -1,3 +1,5 @@
+import Data.List (elemIndex)
+import Data.Maybe (mapMaybe)
 import System.IO (IOMode(..), openFile, hGetContents)
 
 
@@ -8,9 +10,9 @@ import System.IO (IOMode(..), openFile, hGetContents)
 main :: IO ()
 main = do
   input <- load "input.txt"
-  let map = parseInput input
-  putStrLn $ "Part 1: " ++ (show $ part1 map)
-  putStrLn $ "Part 2: " ++ "TODO" -- (show $ part2 map)
+  let pipes = parseInput input
+  putStrLn $ "Part 1: " ++ (show $ part1 pipes)
+  putStrLn $ "Part 2: " ++ "TODO" -- (show $ part2 pipes)
 
 
 load :: String -> IO String
@@ -22,13 +24,11 @@ load fileName =
 
 
 part1 :: [[Pipe]] -> Int
-part1 map =
-  stepsUntilPointsMeet map startingVectors
+part1 pipes =
+  stepsUntilPointsMeet pipes startings
   where
-    startingVectors =
-      ( Vector (Point 9 42) East
-      , Vector (Point 8 43) South
-      )
+    startings =
+      startingVectors pipes
 
 
 -- -----------------------------------------------------------------------------
@@ -64,7 +64,7 @@ data Pipe
   | JointF
   | Ground
   | Start
-  deriving (Show)
+  deriving (Show, Eq)
 
 
 -- -----------------------------------------------------------------------------
@@ -72,7 +72,7 @@ data Pipe
 
 
 stepsUntilPointsMeet :: [[Pipe]] -> (Vector,Vector) -> Int
-stepsUntilPointsMeet map points =
+stepsUntilPointsMeet pipes points =
   loop 1 points
   where
     loop steps (v1, v2) =
@@ -89,7 +89,7 @@ stepsUntilPointsMeet map points =
     move vector =
       let
         Vector point _ = vector
-        pipe = pipeAt map point
+        pipe = pipeAt pipes point
       in
         travelThrough pipe vector
 
@@ -145,9 +145,89 @@ adjustedBy (Point x y) (offsetX, offsetY) =
   Point (x + offsetX) (y + offsetY)
 
 
+adjustedByDirection :: Point -> Direction -> Point
+adjustedByDirection point direction =
+  point `adjustedBy` offset
+  where
+    offset =
+      case direction of
+        North -> (0, -1)
+        East -> (1, 0)
+        South -> (0, 1)
+        West -> (-1, 0)
+
+
 pipeAt :: [[Pipe]] -> Point -> Pipe
-pipeAt map (Point x y) =
-  map !! y !! x
+pipeAt pipes (Point x y) =
+  pipes !! y !! x
+
+
+pipeAtMaybe :: [[Pipe]] -> Point -> Maybe Pipe
+pipeAtMaybe pipes (Point x y) =
+   do
+     row <- pipes !? y
+     val <- row !? x
+     return val
+
+
+startingVectors :: [[Pipe]] -> (Vector, Vector)
+startingVectors pipes =
+  (vec1, vec2)
+  where
+    [vec1, vec2] =
+      findVectors [North, East, South, West]
+
+    findVectors directions =
+      mapMaybe check directions
+
+    check direction =
+      let
+        point = start `adjustedByDirection` direction
+        vector = Vector point direction
+      in
+        case (direction, pipeAtMaybe pipes point) of
+          (North, Just Vertical) -> Just vector
+          (North, Just JointF) -> Just vector
+          (North, Just Joint7) -> Just vector
+          (East, Just Horizontal) -> Just vector
+          (East, Just Joint7) -> Just vector
+          (East, Just JointJ) -> Just vector
+          (South, Just Vertical) -> Just vector
+          (South, Just JointL) -> Just vector
+          (South, Just JointJ) -> Just vector
+          (West, Just Horizontal) -> Just vector
+          (West, Just JointF) -> Just vector
+          otherwise -> Nothing
+
+    start =
+      startingPoint pipes
+
+
+startingPoint :: [[Pipe]] -> Point
+startingPoint pipes =
+  loop 0 pipes
+  where
+    loop y (row:rest) =
+      case elemIndex Start row of
+        Just index ->
+          Point index y
+
+        Nothing ->
+          loop (y + 1) rest
+
+
+-- This should be in the Data.List module according to the docs,
+-- but it isn't in mine. (Maybe it was recently added?)
+(!?) :: [a] -> Int -> Maybe a
+xs !? n
+  | n < 0 =
+    Nothing
+  | otherwise =
+    foldr
+      (\x r k -> case k of
+                   0 -> Just x
+                   _ -> r (k-1))
+      (const Nothing) xs n
 
 
 -- -----------------------------------------------------------------------------
