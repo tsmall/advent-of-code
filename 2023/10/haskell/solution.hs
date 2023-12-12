@@ -1,4 +1,7 @@
+import qualified Data.Set as Set
+
 import Data.List (elemIndex)
+import Data.Set (Set, member)
 import Data.Maybe (mapMaybe)
 import System.IO (IOMode(..), openFile, hGetContents)
 
@@ -8,11 +11,14 @@ import System.IO (IOMode(..), openFile, hGetContents)
 
 
 main :: IO ()
-main = do
-  input <- load "input.txt"
-  let pipes = parseInput input
-  putStrLn $ "Part 1: " ++ (show $ part1 pipes)
-  putStrLn $ "Part 2: " ++ "TODO" -- (show $ part2 pipes)
+main =
+  do
+    input <- load "input.txt"
+    let pipes = parseInput input
+    let start = startingPoint pipes
+    let (part1Answer, loopPoints) = part1 pipes start
+    putStrLn $ "Part 1: " ++ (show part1Answer)
+    putStrLn $ "Part 2: " ++ (show $ part2 pipes loopPoints)
 
 
 load :: String -> IO String
@@ -23,12 +29,17 @@ load fileName =
       "../../../../advent-of-code-problems/2023/10/" ++ fileName
 
 
-part1 :: [[Pipe]] -> Int
-part1 pipes =
-  stepsUntilPointsMeet pipes startings
+part1 :: [[Pipe]] -> Point -> (Int, Set Point)
+part1 pipes start =
+  stepsUntilPointsMeet pipes start startings
   where
     startings =
-      startingVectors pipes
+      startingVectors pipes start
+
+
+part2 :: [[Pipe]] -> Set Point -> Int
+part2 pipes loopPoints =
+  countEnclosedPipes $ simplifyPipes loopPoints pipes
 
 
 -- -----------------------------------------------------------------------------
@@ -44,7 +55,7 @@ data Point = Point
   { pointX :: Int
   , pointY :: Int
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 
 data Direction
@@ -71,20 +82,26 @@ data Pipe
 -- Helpers
 
 
-stepsUntilPointsMeet :: [[Pipe]] -> (Vector,Vector) -> Int
-stepsUntilPointsMeet pipes points =
-  loop 1 points
+stepsUntilPointsMeet :: [[Pipe]] -> Point -> (Vector,Vector) -> (Int, Set Point)
+stepsUntilPointsMeet pipes start points =
+  loop 1 (Set.singleton start) points
   where
-    loop steps (v1, v2) =
+    loop steps loopPipes (v1, v2) =
       let
-        Vector point1 _ = v1
-        Vector point2 _ = v2
+        Vector point1 _ =
+          v1
+
+        Vector point2 _ =
+          v2
+
+        newLoopPipes =
+          Set.insert point1 $ Set.insert point2 loopPipes
       in
         if point1 == point2
         then
-          steps
+          (steps, newLoopPipes)
         else
-          loop (steps + 1) ((move v1), (move v2))
+          loop (steps + 1) newLoopPipes ((move v1), (move v2))
 
     move vector =
       let
@@ -170,8 +187,8 @@ pipeAtMaybe pipes (Point x y) =
      return val
 
 
-startingVectors :: [[Pipe]] -> (Vector, Vector)
-startingVectors pipes =
+startingVectors :: [[Pipe]] -> Point -> (Vector, Vector)
+startingVectors pipes start =
   (vec1, vec2)
   where
     [vec1, vec2] =
@@ -199,9 +216,6 @@ startingVectors pipes =
           (West, Just JointF) -> Just vector
           otherwise -> Nothing
 
-    start =
-      startingPoint pipes
-
 
 startingPoint :: [[Pipe]] -> Point
 startingPoint pipes =
@@ -214,6 +228,68 @@ startingPoint pipes =
 
         Nothing ->
           loop (y + 1) rest
+
+
+simplifyPipes :: Set Point -> [[Pipe]] -> [[Pipe]]
+simplifyPipes loopPoints pipes =
+  reverse $ foldl simplify [] (zip pipes [0..])
+  where
+    simplify results (row, y) =
+      let
+        newRow =
+          simplifyPipeRow y loopPoints row
+      in
+        (newRow:results)
+
+
+simplifyPipeRow :: Int -> Set Point -> [Pipe] -> [Pipe]
+simplifyPipeRow y loopPoints pipes =
+  reverse $ foldl simplify [] (zip pipes [0..])
+  where
+    simplify newRow (pipe, x) =
+      if (Point x y) `member` loopPoints
+      then
+        (pipe:newRow)
+      else
+        (Ground:newRow)
+
+
+countEnclosedPipes :: [[Pipe]] -> Int
+countEnclosedPipes pipes =
+  sum $ map countRow pipes
+
+
+countRow :: [Pipe] -> Int
+countRow pipes =
+  loop 0 False pipes
+  where
+    loop count inside [] =
+      count
+    loop count inside (pipe:rest) =
+      let
+        newCount =
+          case (inside, pipe) of
+            (True, Ground) ->
+              count + 1
+
+            otherwise ->
+              count
+
+        newInside =
+          case pipe of
+            Vertical ->
+              not inside
+
+            JointL ->
+              not inside
+
+            JointJ ->
+              not inside
+
+            otherwise ->
+              inside
+      in
+        loop newCount newInside rest
 
 
 -- This should be in the Data.List module according to the docs,
