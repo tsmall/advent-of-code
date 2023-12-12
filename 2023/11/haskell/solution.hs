@@ -12,8 +12,9 @@ import System.IO (IOMode(..), openFile, hGetContents)
 main :: IO ()
 main = do
   input <- load "input.txt"
-  putStrLn $ "Part 1: " ++ (show $ part1 input)
-  putStrLn $ "Part 2: " ++ "TODO" -- (show $ part2 input)
+  let spaceMap = parseInput input
+  putStrLn $ "Part 1: " ++ (show $ part1 spaceMap)
+  putStrLn $ "Part 2: " ++ (show $ part2 spaceMap)
 
 
 load :: String -> IO String
@@ -24,24 +25,14 @@ load fileName =
       "../../../../advent-of-code-problems/2023/11/" ++ fileName
 
 
-part1 :: String -> Int
-part1 input =
-  sum distances
-  where
-    distances =
-      map getDistance galaxyPairs
+part1 :: SpaceMap -> Int
+part1 spaceMap =
+  distancesWithFactor spaceMap 2
 
-    getDistance (pointA, pointB) =
-      distanceBetween expandedSpace pointA pointB
 
-    galaxyPairs =
-      pairs $ filter isGalaxy $ concat spaceMap
-
-    expandedSpace =
-      findExpansions spaceMap
-
-    spaceMap =
-      parseInput input
+part2 :: SpaceMap -> Int
+part2 spaceMap =
+  distancesWithFactor spaceMap 1000000
 
 
 -- -----------------------------------------------------------------------------
@@ -77,6 +68,23 @@ data ExpandedSpace = ExpandedSpace
 -- Helpers
 
 
+distancesWithFactor :: SpaceMap -> Int -> Int
+distancesWithFactor spaceMap expansionFactor =
+  sum distances
+  where
+    distances =
+      map getDistance galaxyPairs
+
+    getDistance (pointA, pointB) =
+      distanceBetween expandedSpace expansionFactor pointA pointB
+
+    galaxyPairs =
+      pairs $ filter isGalaxy $ concat spaceMap
+
+    expandedSpace =
+      findExpansions spaceMap
+
+
 isGalaxy :: Point -> Bool
 isGalaxy point =
   (pointType point) == Galaxy
@@ -87,9 +95,9 @@ pairs xs =
   [ (x, y) | (x:ys) <- tails xs, y <- ys ]
 
 
-distanceBetween :: ExpandedSpace -> Point -> Point -> Int
-distanceBetween expandedSpace pointA pointB =
-  abs (xA - xB) + abs (yA - yB) + expansions
+distanceBetween :: ExpandedSpace -> Int -> Point -> Point -> Int
+distanceBetween expandedSpace expansionFactor pointA pointB =
+  abs (xA - xB) + abs (yA - yB) + (expansions * (expansionFactor-1))
   where
     Point xA yA Galaxy =
       pointA
