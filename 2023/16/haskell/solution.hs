@@ -16,7 +16,7 @@ main =
     input <- load "input.txt"
     let tileMap = parseMap input
     putStrLn $ "Part 1: " ++ (show $ part1 tileMap)
-    putStrLn $ "Part 2: " ++ "TODO" -- (show $ part2 input)
+    putStrLn $ "Part 2: " ++ (show $ part2 tileMap)
 
 
 load :: String -> IO String
@@ -30,6 +30,32 @@ load fileName =
 part1 :: TileMap -> Int
 part1 tileMap =
   shootPhotons tileMap Set.empty [Photon (Point 0 0) East]
+
+
+part2 :: TileMap -> Int
+part2 tileMap =
+  maximum $ map shoot startingPhotons
+  where
+    shoot startingPhoton =
+      shootPhotons tileMap Set.empty [startingPhoton]
+
+    startingPhotons =
+      topPhotons ++ leftPhotons ++ bottomPhotons ++ rightPhotons
+
+    topPhotons =
+      map (\point -> Photon point South) [Point x 0 | x <- [0..maxX]]
+
+    leftPhotons =
+      map (\point -> Photon point East) [Point 0 y | y <- [0..maxY]]
+
+    bottomPhotons =
+      map (\point -> Photon point North) [Point x maxY | x <- [0..maxX]]
+
+    rightPhotons =
+      map (\point -> Photon point West) [Point maxX y | y <- [0..maxY]]
+
+    TileMap _ minX maxX minY maxY =
+      tileMap
 
 
 -- -----------------------------------------------------------------------------
